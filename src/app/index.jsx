@@ -6,6 +6,7 @@ import { ImageBackground, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function WelcomeScreen() {
+    console.log("MARKER: WelcomeScreen Rendered");
     return (
         <View className="flex-1">
             <StatusBar style="light" />
@@ -37,8 +38,8 @@ export default function WelcomeScreen() {
                                 "I am the living bread that came down from heaven."
 
                             </Text>
-                            <Text className="text-lg font-bold italic leading-snug text-white">
-                                "நானே பரலோகத்திலிருந்து இறங்கி வந்த ஜீவ அப்பம்."
+                            <Text className="text-md font-bold italic leading-snug text-white">
+                                "நானே வானத்திலிருந்திறங்கின ஜீவ அப்பம்."
                             </Text>
                             <View className="mt-4 flex-row items-center border-t border-white/10 pt-4">
                                 <View className="h-1 w-8 rounded-full bg-accent" />
