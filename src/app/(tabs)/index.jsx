@@ -7,8 +7,9 @@ import { getAllBibles, getBibleBooks, getBibleChapters, getBibleChapter } from "
 
 export default function ReaderScreen() {
     const [allBibles, setAllBibles] = useState([]);
-    console.log(`MARKER: [${new Date().toLocaleTimeString()}] ReaderScreen rendered. bibles: ${allBibles.length}`);
     const [selectedBibleId, setSelectedBibleId] = useState("");
+    const [selectedVersion, setSelectedVersion] = useState("NIV");
+    const [displayBibleName, setDisplayBibleName] = useState("");
 
     // Simplification: derive available bibles directly from all fetched bibles
     const availableBibles = allBibles;
@@ -24,27 +25,22 @@ export default function ReaderScreen() {
     const [isLoading, setIsLoading] = useState(true);
     const [isInitialLoading, setIsInitialLoading] = useState(true);
     const colorScheme = useColorScheme();
-    
-    console.log("MARKER: ReaderScreen Rendered", { hasBibles: allBibles.length, selectedBibleId });
 
     // Initial load of all bibles and languages
     useEffect(() => {
         const loadInitialData = async () => {
-            console.log("MARKER: loadInitialData triggered");
             setIsInitialLoading(true);
             try {
                 const bibles = await getAllBibles();
-                console.log("MARKER: getAllBibles returned", bibles?.length || 0, "bibles");
-                
+
                 if (bibles && bibles.length > 0) {
                     setAllBibles(bibles);
-                    console.log("MARKER: setting initial bible ID", bibles[0].id);
                     setSelectedBibleId(bibles[0].id);
-                } else {
-                    console.log("MARKER: No bibles found in API response");
+                    setDisplayBibleName(bibles[0].name);
+                    setSelectedVersion(bibles[0].cleanAbbreviation || bibles[0].abbreviation || "KJV");
                 }
             } catch (err) {
-                console.error("MARKER: Initialization CRASH:", err);
+                console.error("Initialization error:", err);
             } finally {
                 setIsInitialLoading(false);
             }
@@ -62,11 +58,9 @@ export default function ReaderScreen() {
     // Fetch books when bible changes
     useEffect(() => {
         const fetchBooks = async () => {
-            console.log("MARKER: fetchBooks check", { selectedBibleId });
             if (!selectedBibleId) return;
             try {
                 const books = await getBibleBooks(selectedBibleId);
-                console.log("MARKER: Books returned", books.length);
                 setAvailableBooks(books);
                 // If current chapter's book isn't in new version, switch to first book
                 const currentBookId = activeChapter.split('.')[0];
@@ -84,15 +78,9 @@ export default function ReaderScreen() {
     useEffect(() => {
         const fetchChapters = async () => {
             const bookId = activeChapter.split('.')[0];
-            console.log("MARKER: fetchChapters check", { selectedBibleId, bookId });
-            if (!selectedBibleId || !bookId) {
-                console.log("MARKER: Missing ID for Chapters fetch - skipping.");
-                return;
-            }
+            if (!selectedBibleId || !bookId) return;
             try {
-                console.log("MARKER: calling getBibleChapters...");
                 const chapters = await getBibleChapters(selectedBibleId, bookId);
-                console.log("MARKER: Chapters returned", chapters.length);
                 setAvailableChapters(chapters);
             } catch (err) {
                 console.error("Error fetching chapters:", err);
@@ -103,15 +91,10 @@ export default function ReaderScreen() {
 
     // Fetch scripture content
     useEffect(() => {
-        console.log("MARKER: fetchContent EFFECT TRIGGERED", { selectedBibleId, activeChapter });
         const fetchContent = async () => {
-            if (!selectedBibleId || !activeChapter) {
-                console.log("MARKER: fetchContent check FAILED - missing ID or chapter");
-                return;
-            }
+            if (!selectedBibleId || !activeChapter) return;
             setIsLoading(true);
             try {
-                console.log("MARKER: calling getBibleChapter...");
                 const content = await getBibleChapter(selectedBibleId, activeChapter);
                 if (content) {
                     console.log("Content:", content);
@@ -261,7 +244,7 @@ export default function ReaderScreen() {
                             <View className="flex-row items-start justify-between">
                                 <View className="flex-1 pr-4">
                                     <Text className="text-base font-bold uppercase tracking-widest text-primary dark:text-accent">
-                                        {(availableBooks.find(b => activeChapter.startsWith(b.id)) || {}).name || "Bible"}
+                                        {(availableBooks.find(b => activeChapter.startsWith(b.id)) || {}).nameLong || "Bible"}
                                     </Text>
                                     <View className="flex-row items-baseline">
                                         <Text className="text-4xl font-black tracking-tighter text-slate-900 dark:text-white">
@@ -269,7 +252,7 @@ export default function ReaderScreen() {
                                         </Text>
                                     </View>
                                     <Text numberOfLines={1} className="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">
-                                        {currentBible.name || "Select a version"}
+                                        {selectedVersion} • {displayBibleName || "Select a version"}
                                     </Text>
                                 </View>
                                 <TouchableOpacity className="h-12 w-12 items-center justify-center rounded-2xl bg-primary shadow-lg shadow-primary/30 active:scale-95">
@@ -283,16 +266,52 @@ export default function ReaderScreen() {
                     {/* Version Selection: Segmented Control Style */}
                     <View className="mb-8 flex-row items-center rounded-3xl bg-slate-100 p-1.5 dark:bg-slate-800/60">
                         {availableBibles.map((bible) => {
-                            const isActive = selectedBibleId === bible.id;
+                            const version = bible.cleanAbbreviation || bible.abbreviation;
+                            const isActive = selectedVersion === version;
                             return (
                                 <TouchableOpacity
                                     key={bible.id}
-                                    onPress={() => setSelectedBibleId(bible.id)}
-                                    className={`flex-1 items-center justify-center rounded-2xl py-2.5 ${isActive ? "bg-white shadow-sm dark:bg-slate-700" : ""}`}
+                                    onPress={async () => {
+                                        const version = bible.cleanAbbreviation || bible.abbreviation;
+                                        setSelectedVersion(version);
+                                        setDisplayBibleName(bible.name);
+                                        // Keeping setSelectedBibleId commented out to prevent content changing
+                                        // setSelectedBibleId(bible.id);
+                                        console.log(`\n--- DEEP FETCH LOG: ${bible.name} (${bible.id}) ---`);
+
+                                        try {
+                                            const books = await getBibleBooks(bible.id);
+                                            console.log(`- Books count: ${books.length}`);
+
+                                            const chapters = await getBibleChapters(bible.id, 'GEN');
+                                            console.log(`- Chapters count (GEN): ${chapters.length}`);
+
+                                            const content = await getBibleChapter(bible.id, 'GEN.1');
+                                            console.log(`- GEN.1 Content (First 200 chars):\n${(content || '').substring(0, 200)}...`);
+                                            console.log(`--- DEEP FETCH COMPLETE ---\n`);
+                                        } catch (err) {
+                                            console.error(`!!! DEEP FETCH ERROR (${bible.id}):`, err);
+                                        }
+                                    }}
+                                    className="flex-1 items-center justify-center rounded-2xl py-2.5"
+                                    style={{ 
+                                        backgroundColor: isActive ? (colorScheme === 'dark' ? '#334155' : 'white') : 'transparent',
+                                        shadowColor: '#000',
+                                        shadowOffset: { width: 0, height: 1 },
+                                        shadowOpacity: isActive ? 0.1 : 0,
+                                        shadowRadius: 2,
+                                        elevation: isActive ? 2 : 0
+                                    }}
                                 >
-                                    <Text 
-                                        style={{ fontSize: 12, letterSpacing: 0.6 }} 
-                                        className={`font-black uppercase ${isActive ? "text-slate-900 dark:text-white" : "text-slate-500"}`}
+                                    <Text
+                                        style={{ 
+                                            fontSize: 12, 
+                                            letterSpacing: 0.6,
+                                            color: isActive 
+                                                ? (colorScheme === 'dark' ? '#ffffff' : '#0f172a') 
+                                                : '#64748b'
+                                        }}
+                                        className="font-black uppercase"
                                     >
                                         {bible.cleanAbbreviation || bible.abbreviation || (bible.name || '').substring(0, 3)}
                                     </Text>

@@ -29,7 +29,7 @@ const classesStyles = {
   },
   q1: {
     fontSize: 19,
-    lineHeight: 32,
+    lineHeight: 28,
     paddingLeft: 24,
     fontStyle: 'italic',
     marginBottom: 4,
@@ -51,7 +51,7 @@ const classesStyles = {
     textAlign: 'justify',
   },
   b: {
-    height: 12,
+    height: 0,
   }
 };
 

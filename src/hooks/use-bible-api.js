@@ -2,7 +2,7 @@ import API_CONFIG from '../utils/API-key.js';
 
 const BASE_URL = 'https://rest.api.bible/v1/';
 
-const TARGET_VERSIONS = ['NIV', 'KJV', 'NLT'];
+const TARGET_VERSIONS = ['NIV', 'KJV', 'NLT', 'IRV'];
 
 /**
  * Fetches all available bibles from the API.
@@ -31,30 +31,31 @@ export const getAllBibles = async () => {
     const filtered = bibles.filter(bible => {
       const abbr = (bible.abbreviation || '').toUpperCase();
       const name = (bible.name || '').toUpperCase();
-
       return TARGET_VERSIONS.some(target => abbr.includes(target) || name.includes(target));
     });
 
-    const finalSelection = [];
-    const seenVersions = new Set();
-
-    // Sort by abbreviation length to prioritize clean ones (NIV over NIV11)
-    const sortedFiltered = filtered.sort((a, b) => (a.abbreviation || '').length - (b.abbreviation || '').length);
-
-    for (const bible of sortedFiltered) {
+    // Deduplicate by Picking ONE per target version (prioritize English/Tamil)
+    const dedupedByVersion = {};
+    
+    for (const bible of filtered) {
       const abbr = (bible.abbreviation || '').toUpperCase();
-      const langId = bible.language && bible.language.id;
-
-      // Find which target this belongs to
+      const langId = bible.language?.id || '';
+      
       let target = TARGET_VERSIONS.find(t => abbr.includes(t));
+      if (!target) continue;
 
-      if (target && !seenVersions.has(target + langId)) {
-        seenVersions.add(target + langId);
-        // Overwrite abbreviation to be clean for the UI. Max 4 chars so it fits nicely
-        bible.cleanAbbreviation = target.length > 5 ? target.substring(0, 4) : target;
-        finalSelection.push(bible);
+      const currentScore = dedupedByVersion[target] ? (dedupedByVersion[target].language?.id === 'eng' ? 2 : dedupedByVersion[target].language?.id === 'tam' ? 1 : 0) : -1;
+      const newScore = langId === 'eng' ? 2 : langId === 'tam' ? 1 : 0;
+
+      if (newScore > currentScore) {
+        bible.cleanAbbreviation = target; 
+        dedupedByVersion[target] = bible;
       }
     }
+
+    const finalSelection = TARGET_VERSIONS
+      .map(target => dedupedByVersion[target])
+      .filter(Boolean);
 
     return finalSelection;
   } catch (error) {
@@ -141,15 +142,12 @@ export const getBibleChapter = async (bibleId, chapterId) => {
     }
 
     const data = await response.json();
-    console.log(`MARKER: API Response Received!`);
-    
-    if (data && data.data && data.data.content) {
-      console.log(`MARKER: RAW Data Content (First 500 chars):\n${data.data.content.substring(0, 500)}...`);
-      console.log(`MARKER: Total Content Length: ${data.data.content.length}`);
 
-      // Forcefully remove any <a> tags or footnotes from the API response so that 
-      // react-native-render-html never tries to process links (which crashes expo-router navigation context)
-      const safeContent = data.data.content.replace(/<a[^>]*>.*?<\/a>/gi, '');
+    if (data && data.data && data.data.content) {
+      console.log(`--> Success! Fetched Bible chapter: ${chapterId}`);
+
+      // Robust Newline-Safe Cleaning: match <a> tags even if they contain line breaks
+      const safeContent = data.data.content.replace(/<a[^>]*>[\s\S]*?<\/a>/gi, '');
       return safeContent;
     }
     console.log(`--> Data empty for payload`, data);
