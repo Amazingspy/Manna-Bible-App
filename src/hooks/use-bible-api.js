@@ -8,7 +8,6 @@ const TARGET_VERSIONS = ['NIV', 'KJV', 'NLT', 'IRV'];
  * Fetches all available bibles from the API.
  */
 export const getAllBibles = async () => {
-  console.log("MARKER: getAllBibles triggered");
   if (!API_CONFIG['api-key']) {
     console.error("CRITICAL: API KEY IS MISSING in API-key.js!");
   }
@@ -36,11 +35,11 @@ export const getAllBibles = async () => {
 
     // Deduplicate by Picking ONE per target version (prioritize English/Tamil)
     const dedupedByVersion = {};
-    
+
     for (const bible of filtered) {
       const abbr = (bible.abbreviation || '').toUpperCase();
       const langId = bible.language?.id || '';
-      
+
       let target = TARGET_VERSIONS.find(t => abbr.includes(t));
       if (!target) continue;
 
@@ -48,7 +47,7 @@ export const getAllBibles = async () => {
       const newScore = langId === 'eng' ? 2 : langId === 'tam' ? 1 : 0;
 
       if (newScore > currentScore) {
-        bible.cleanAbbreviation = target; 
+        bible.cleanAbbreviation = target;
         dedupedByVersion[target] = bible;
       }
     }
@@ -68,7 +67,7 @@ export const getAllBibles = async () => {
  * Fetches available books for a specific bible.
  */
 export const getBibleBooks = async (bibleId) => {
-  console.log("MARKER: getBibleBooks triggered for", bibleId);
+  // console.log("MARKER: getBibleBooks triggered for", bibleId);
   if (!bibleId) return [];
   try {
     const response = await fetch(`${BASE_URL}bibles/${bibleId}/books`, {
@@ -94,7 +93,7 @@ export const getBibleBooks = async (bibleId) => {
  * Fetches available chapters for a specific book.
  */
 export const getBibleChapters = async (bibleId, bookId) => {
-  console.log("MARKER: getBibleChapters triggered for", { bibleId, bookId });
+  // console.log("MARKER: getBibleChapters triggered for", { bibleId, bookId });
   if (!bibleId || !bookId) return [];
   try {
     const response = await fetch(`${BASE_URL}bibles/${bibleId}/books/${bookId}/chapters`, {
@@ -109,7 +108,7 @@ export const getBibleChapters = async (bibleId, bookId) => {
     }
 
     const result = await response.json();
-    console.log("Chapters:", result.data);
+    // console.log("Chapters:", result.data);
     return result.data || [];
   } catch (error) {
     console.error('Failed to fetch chapters:', error);
@@ -123,10 +122,10 @@ export const getBibleChapters = async (bibleId, bookId) => {
 export const getBibleChapter = async (bibleId, chapterId) => {
   if (!bibleId || !chapterId) return null;
 
-  console.log(`\n=== API FETCH ===`);
-  console.log(`--> getBibleChapter called with bibleId: ${bibleId}, chapterId: ${chapterId}`);
+  // console.log(`\n=== API FETCH ===`);
+  // console.log(`--> getBibleChapter called with bibleId: ${bibleId}, chapterId: ${chapterId}`);
   const url = `${BASE_URL}bibles/${bibleId}/chapters/${chapterId}?content-type=html`;
-  console.log(`--> URL: ${url}`);
+  // console.log(`--> URL: ${url}`);
 
   try {
     const response = await fetch(url, {
@@ -137,20 +136,20 @@ export const getBibleChapter = async (bibleId, chapterId) => {
     });
 
     if (!response.ok) {
-      console.log(`--> HTTP error status: ${response.status}`);
+      // console.log(`--> HTTP error status: ${response.status}`);
       return null;
     }
 
     const data = await response.json();
 
     if (data && data.data && data.data.content) {
-      console.log(`--> Success! Fetched Bible chapter: ${chapterId}`);
+      // console.log(`--> Success! Fetched Bible chapter: ${chapterId}`);
 
       // Robust Newline-Safe Cleaning: match <a> tags even if they contain line breaks
       const safeContent = data.data.content.replace(/<a[^>]*>[\s\S]*?<\/a>/gi, '');
       return safeContent;
     }
-    console.log(`--> Data empty for payload`, data);
+    // console.log(`--> Data empty for payload`, data);
     return null;
   } catch (error) {
     console.error('--> Failed to fetch Bible chapter:', error);

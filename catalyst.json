@@ -1,0 +1,9 @@
+{
+  "functions": {
+    "targets": [
+      "manna_function"
+    ],
+    "ignore": [],
+    "source": "functions"
+  }
+}

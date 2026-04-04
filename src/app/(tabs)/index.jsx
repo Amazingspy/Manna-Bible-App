@@ -1,19 +1,21 @@
-import { MaterialIcons } from "@expo/vector-icons";
 import React, { useState, useEffect } from "react";
-import { ScrollView, Text, TouchableOpacity, View, ActivityIndicator, useColorScheme, Modal } from "react-native";
+import { ScrollView, View, Text, TouchableOpacity, useColorScheme, ActivityIndicator, Share, Modal } from "react-native";
+import { MaterialIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import BibleHtmlRenderer from "../../components/bible-html-renderer";
 import { getAllBibles, getBibleBooks, getBibleChapters, getBibleChapter } from "../../hooks/use-bible-api.js";
+// import * as Clipboard from 'expo-clipboard';
 
 export default function ReaderScreen() {
     const [allBibles, setAllBibles] = useState([]);
-    const [selectedBibleId, setSelectedBibleId] = useState("");
+    const [selectedBibleId, setSelectedBibleId] = useState(null);
     const [selectedVersion, setSelectedVersion] = useState("NIV");
-    const [displayBibleName, setDisplayBibleName] = useState("");
+    const [displayBibleName, setDisplayBibleName] = useState("New International Version 2011");
 
-    // Simplification: derive available bibles directly from all fetched bibles
     const availableBibles = allBibles;
     const [availableBooks, setAvailableBooks] = useState([]);
+    const [activeBook, setActiveBook] = useState('GEN');
+    const [activeBookName, setActiveBookName] = useState('Genesis');
     const [availableChapters, setAvailableChapters] = useState([]);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [expandedBookId, setExpandedBookId] = useState(null);
@@ -21,18 +23,51 @@ export default function ReaderScreen() {
     const [isFetchingSidebarChapters, setIsFetchingSidebarChapters] = useState(false);
 
     const [activeChapter, setActiveChapter] = useState("GEN.1");
-    const [htmlContent, setHtmlContent] = useState("");
+    const [htmlContent, setHtmlContent] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isInitialLoading, setIsInitialLoading] = useState(true);
     const colorScheme = useColorScheme();
+    const [highlights, setHighlights] = useState({});
+    const [selectedVerseId, setSelectedVerseId] = useState(null);
 
-    // Initial load of all bibles and languages
+    const getVerseText = (vid) => {
+        if (!htmlContent) return "";
+        try {
+            const parts = htmlContent.split(new RegExp(`data-sid="${vid}"`));
+            if (parts.length < 2) return "";
+            const segment = parts[1].split(/<span[^>]+class="v"/)[0];
+            return segment.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' ').trim();
+        } catch (e) {
+            return "";
+        }
+    };
+
+    // const copyToClipboard = async (vid) => {
+    //     const text = getVerseText(vid);
+    //     if (text) {
+    //         await Clipboard.setStringAsync(`${activeBookName} ${vid.split('.')[1]}:${vid.split('.')[2]} - ${text}`);
+    //         alert('Copied to clipboard!');
+    //     }
+    // };
+
+    const shareVerse = async (vid) => {
+        const text = getVerseText(vid);
+        if (text) {
+            try {
+                await Share.share({
+                    message: `${activeBookName} ${vid.split('.')[1]}:${vid.split('.')[2]}\n\n"${text}"\n\nShared via Manna Bible App`,
+                });
+            } catch (error) {
+                // console.log(error.message);
+            }
+        }
+    };
+
     useEffect(() => {
         const loadInitialData = async () => {
             setIsInitialLoading(true);
             try {
                 const bibles = await getAllBibles();
-
                 if (bibles && bibles.length > 0) {
                     setAllBibles(bibles);
                     setSelectedBibleId(bibles[0].id);
@@ -40,7 +75,7 @@ export default function ReaderScreen() {
                     setSelectedVersion(bibles[0].cleanAbbreviation || bibles[0].abbreviation || "KJV");
                 }
             } catch (err) {
-                console.error("Initialization error:", err);
+                // console.error("Initialization error:", err);
             } finally {
                 setIsInitialLoading(false);
             }
@@ -48,33 +83,29 @@ export default function ReaderScreen() {
         loadInitialData();
     }, []);
 
-    // Simplified: Chapter header text logic
-    const getChapterText = () => {
-        // If the bible name contains Tamil or language is tam, use Tamil header
-        const isTamil = currentBible.language?.id === 'tam' || (currentBible.name || '').includes('Tamil');
-        return isTamil ? 'அதிகாரம்' : 'Chapter';
-    };
-
-    // Fetch books when bible changes
     useEffect(() => {
         const fetchBooks = async () => {
             if (!selectedBibleId) return;
             try {
-                const books = await getBibleBooks(selectedBibleId);
-                setAvailableBooks(books);
-                // If current chapter's book isn't in new version, switch to first book
+                const booksData = await getBibleBooks(selectedBibleId);
+                setAvailableBooks(booksData);
                 const currentBookId = activeChapter.split('.')[0];
-                if (!books.find(b => b.id === currentBookId)) {
-                    if (books.length > 0) setActiveChapter(`${books[0].id}.1`);
+                if (!booksData.find(b => b.id === currentBookId)) {
+                    if (booksData.length > 0) {
+                        setActiveChapter(`${booksData[0].id}.1`);
+                        setActiveBookName(booksData[0].name);
+                    }
+                } else {
+                    const currentBook = booksData.find(b => b.id === currentBookId);
+                    setActiveBookName(currentBook.name);
                 }
             } catch (err) {
-                console.error("Error fetching books:", err);
+                // console.error("Error fetching books:", err);
             }
         };
         fetchBooks();
     }, [selectedBibleId]);
 
-    // Fetch chapters when book changes
     useEffect(() => {
         const fetchChapters = async () => {
             const bookId = activeChapter.split('.')[0];
@@ -83,13 +114,12 @@ export default function ReaderScreen() {
                 const chapters = await getBibleChapters(selectedBibleId, bookId);
                 setAvailableChapters(chapters);
             } catch (err) {
-                console.error("Error fetching chapters:", err);
+                // console.error("Error fetching chapters:", err);
             }
         };
         fetchChapters();
     }, [selectedBibleId, activeChapter.split('.')[0]]);
 
-    // Fetch scripture content
     useEffect(() => {
         const fetchContent = async () => {
             if (!selectedBibleId || !activeChapter) return;
@@ -97,7 +127,6 @@ export default function ReaderScreen() {
             try {
                 const content = await getBibleChapter(selectedBibleId, activeChapter);
                 if (content) {
-                    console.log("Content:", content);
                     setHtmlContent(content);
                 } else {
                     setHtmlContent("<p class='p text-center opacity-50 italic py-10'>Word not available for this selection.</p>");
@@ -122,7 +151,7 @@ export default function ReaderScreen() {
             const chapters = await getBibleChapters(selectedBibleId, bookId);
             setSidebarChapters(chapters);
         } catch (err) {
-            console.error("Error fetching sidebar chapters:", err);
+            // console.error("Error fetching sidebar chapters:", err);
         } finally {
             setIsFetchingSidebarChapters(false);
         }
@@ -132,8 +161,6 @@ export default function ReaderScreen() {
         const currentIndex = availableChapters.findIndex(c => c.id === activeChapter);
         if (currentIndex > 0) {
             setActiveChapter(availableChapters[currentIndex - 1].id);
-        } else {
-            // Room for logic to move to previous book's last chapter
         }
     };
 
@@ -141,18 +168,18 @@ export default function ReaderScreen() {
         const currentIndex = availableChapters.findIndex(c => c.id === activeChapter);
         if (currentIndex < availableChapters.length - 1) {
             setActiveChapter(availableChapters[currentIndex + 1].id);
-        } else {
-            // Room for logic to move to next book's first chapter
         }
     };
 
     const chapterNum = activeChapter.split('.')[1] || "1";
     const isFirstChapter = availableChapters.findIndex(c => c.id === activeChapter) <= 0;
     const isLastChapter = availableChapters.findIndex(c => c.id === activeChapter) === availableChapters.length - 1;
-
-    // Current Bible Metadata
     const currentBible = availableBibles.find(b => b.id === selectedBibleId) || {};
-    console.log("Current Bible:", currentBible);
+
+    const getChapterText = () => {
+        const isTamil = currentBible.language?.id === 'tam' || (currentBible.name || '').includes('Tamil');
+        return isTamil ? 'அதிகாரம்' : 'Chapter';
+    };
 
     if (isInitialLoading) {
         return (
@@ -238,16 +265,23 @@ export default function ReaderScreen() {
 
             <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 120 }}>
                 <View className="mx-auto w-full max-w-2xl px-6">
-                    {/* Chapter Header */}
                     <View className="mt-6 mb-6 overflow-hidden rounded-[2rem] border border-slate-100 bg-slate-50 shadow-xl dark:border-slate-800 dark:bg-slate-900/40">
                         <View className="p-6">
                             <View className="flex-row items-start justify-between">
                                 <View className="flex-1 pr-4">
                                     <Text className="text-base font-bold uppercase tracking-widest text-primary dark:text-accent">
-                                        {(availableBooks.find(b => activeChapter.startsWith(b.id)) || {}).nameLong || "Bible"}
+                                        {(() => {
+                                            const book = availableBooks.find(b => activeChapter.startsWith(b.id)) || {};
+                                            let n = book.nameLong || book.name || "Bible";
+                                            // Handle KJV long formal names: "The First Book of Moses, Called Genesis" -> "Genesis"
+                                            if (n.includes("Called ")) {
+                                                n = n.split("Called ")[1];
+                                            }
+                                            return n;
+                                        })()}
                                     </Text>
                                     <View className="flex-row items-baseline">
-                                        <Text className="text-4xl font-black tracking-tighter text-slate-900 dark:text-white">
+                                        <Text numberOfLines={1} className="text-3xl font-black tracking-tighter text-slate-900 dark:text-white">
                                             {getChapterText()} {chapterNum}
                                         </Text>
                                     </View>
@@ -262,8 +296,6 @@ export default function ReaderScreen() {
                         </View>
                     </View>
 
-
-                    {/* Version Selection: Segmented Control Style */}
                     <View className="mb-8 flex-row items-center rounded-3xl bg-slate-100 p-1.5 dark:bg-slate-800/60">
                         {availableBibles.map((bible) => {
                             const version = bible.cleanAbbreviation || bible.abbreviation;
@@ -271,48 +303,18 @@ export default function ReaderScreen() {
                             return (
                                 <TouchableOpacity
                                     key={bible.id}
-                                    onPress={async () => {
+                                    onPress={() => {
                                         const version = bible.cleanAbbreviation || bible.abbreviation;
                                         setSelectedVersion(version);
                                         setDisplayBibleName(bible.name);
-                                        // Keeping setSelectedBibleId commented out to prevent content changing
-                                        // setSelectedBibleId(bible.id);
-                                        console.log(`\n--- DEEP FETCH LOG: ${bible.name} (${bible.id}) ---`);
-
-                                        try {
-                                            const books = await getBibleBooks(bible.id);
-                                            console.log(`- Books count: ${books.length}`);
-
-                                            const chapters = await getBibleChapters(bible.id, 'GEN');
-                                            console.log(`- Chapters count (GEN): ${chapters.length}`);
-
-                                            const content = await getBibleChapter(bible.id, 'GEN.1');
-                                            console.log(`- GEN.1 Content (First 200 chars):\n${(content || '').substring(0, 200)}...`);
-                                            console.log(`--- DEEP FETCH COMPLETE ---\n`);
-                                        } catch (err) {
-                                            console.error(`!!! DEEP FETCH ERROR (${bible.id}):`, err);
-                                        }
+                                        setSelectedBibleId(bible.id);
                                     }}
                                     className="flex-1 items-center justify-center rounded-2xl py-2.5"
-                                    style={{ 
+                                    style={{
                                         backgroundColor: isActive ? (colorScheme === 'dark' ? '#334155' : 'white') : 'transparent',
-                                        shadowColor: '#000',
-                                        shadowOffset: { width: 0, height: 1 },
-                                        shadowOpacity: isActive ? 0.1 : 0,
-                                        shadowRadius: 2,
-                                        elevation: isActive ? 2 : 0
                                     }}
                                 >
-                                    <Text
-                                        style={{ 
-                                            fontSize: 12, 
-                                            letterSpacing: 0.6,
-                                            color: isActive 
-                                                ? (colorScheme === 'dark' ? '#ffffff' : '#0f172a') 
-                                                : '#64748b'
-                                        }}
-                                        className="font-black uppercase"
-                                    >
+                                    <Text style={{ fontSize: 12, letterSpacing: 0.6, color: isActive ? (colorScheme === 'dark' ? '#ffffff' : '#0f172a') : '#64748b' }} className="font-black uppercase">
                                         {bible.cleanAbbreviation || bible.abbreviation || (bible.name || '').substring(0, 3)}
                                     </Text>
                                 </TouchableOpacity>
@@ -320,23 +322,6 @@ export default function ReaderScreen() {
                         })}
                     </View>
 
-                    {/* Reader Controls Panel */}
-                    {/* <View className="mb-8 flex-row items-center justify-between rounded-3xl border border-slate-100 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/60">
-                        <View className="flex-row items-center gap-2">
-                            <TouchableOpacity className="h-10 w-10 items-center justify-center rounded-xl bg-slate-50 dark:bg-white/5">
-                                <MaterialIcons name="format-size" size={20} className="text-slate-500 dark:text-slate-300" />
-                            </TouchableOpacity>
-                            <TouchableOpacity className="h-10 w-10 items-center justify-center rounded-xl bg-slate-50 dark:bg-white/5">
-                                <MaterialIcons name="headset" size={20} className="text-slate-500 dark:text-slate-300" />
-                            </TouchableOpacity>
-                        </View>
-                        <TouchableOpacity className="flex-row items-center gap-2 rounded-2xl bg-slate-900 px-5 py-2.5 dark:bg-white shadow-lg active:scale-95">
-                            <MaterialIcons name="download" size={18} className="text-white dark:text-slate-900" />
-                            <Text className="text-[10px] font-black uppercase tracking-tight text-white dark:text-slate-900">Offline</Text>
-                        </TouchableOpacity>
-                    </View> */}
-
-                    {/* Bible Content */}
                     <View className="pb-20">
                         {isLoading ? (
                             <View className="py-20 items-center justify-center">
@@ -344,10 +329,17 @@ export default function ReaderScreen() {
                                 <Text className="mt-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Fetching Word...</Text>
                             </View>
                         ) : (
-                            <BibleHtmlRenderer html={htmlContent} colorScheme={colorScheme} />
+                            <BibleHtmlRenderer
+                                html={htmlContent}
+                                colorScheme={colorScheme}
+                                isTamil={currentBible.language?.id === 'tam' || (currentBible.name || '').includes('Tamil')}
+                                highlights={highlights}
+                                selectedVerseId={selectedVerseId}
+                                onVersePress={(vid) => setSelectedVerseId(prev => prev === vid ? null : vid)}
+                                onVerseLongPress={(vid) => setSelectedVerseId(vid)}
+                            />
                         )}
 
-                        {/* Navigation Footer */}
                         <View className="mt-16 flex-row items-center justify-between border-t border-slate-100 pt-12 dark:border-slate-800">
                             <TouchableOpacity
                                 onPress={handlePreviousChapter}
@@ -370,6 +362,70 @@ export default function ReaderScreen() {
                     </View>
                 </View>
             </ScrollView>
+
+            {selectedVerseId && (
+                <View
+                    style={{ position: 'absolute', bottom: 40, left: 24, right: 24 }}
+                    className="flex-row items-center justify-between rounded-[2rem] bg-slate-900 px-6 py-4 shadow-2xl dark:bg-slate-800 border border-white/10"
+                >
+                    <View className="flex-row items-center gap-4">
+                        {[
+                            { name: 'Yellow', color: '#ffe563ff' },
+                            { name: 'Blue', color: '#9bd7feff' },
+                            { name: 'Green', color: '#94ffb2ff' },
+                            { name: 'Pink', color: '#ffb2b7ff' }
+                        ].map((item) => (
+                            <TouchableOpacity
+                                key={item.name}
+                                onPress={() => {
+                                    setHighlights(prev => ({ ...prev, [selectedVerseId]: item.color }));
+                                    setSelectedVerseId(null);
+                                }}
+                                style={{ backgroundColor: item.color }}
+                                className="h-8 w-8 rounded-full border border-white/20 active:scale-90"
+                            />
+                        ))}
+                    </View>
+
+                    <View className="h-6 w-[1px] bg-white/10 mx-2" />
+
+                    <View className="flex-row items-center gap-6">
+                        <TouchableOpacity
+                            onPress={() => {
+                                // copyToClipboard(selectedVerseId);
+                                setSelectedVerseId(null);
+                            }}
+                            className="active:scale-90"
+                        >
+                            <MaterialIcons name="content-copy" size={20} color="white" />
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            onPress={() => {
+                                shareVerse(selectedVerseId);
+                                setSelectedVerseId(null);
+                            }}
+                            className="active:scale-90"
+                        >
+                            <MaterialIcons name="share" size={20} color="white" />
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            onPress={() => {
+                                setHighlights(prev => {
+                                    const next = { ...prev };
+                                    delete next[selectedVerseId];
+                                    return next;
+                                });
+                                setSelectedVerseId(null);
+                            }}
+                            className="active:scale-90"
+                        >
+                            <MaterialIcons name="delete-outline" size={22} color="#f87171" />
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            )}
         </SafeAreaView>
     );
 }
