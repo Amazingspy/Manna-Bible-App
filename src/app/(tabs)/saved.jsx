@@ -1,19 +1,39 @@
 import { MaterialIcons } from "@expo/vector-icons";
-import React from "react";
-import { ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
+import React, { useState } from "react";
+import { ScrollView, Text, TextInput, TouchableOpacity, View, Share } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useSaved } from "../../context/SavedContext";
 
 export default function SavedScreen() {
+    const { savedVerses, removeVerse } = useSaved();
+    const [searchQuery, setSearchQuery] = useState("");
+
+    const handleShare = async (verse) => {
+        try {
+
+            await Share.share({
+                message: `${verse.reference}\n\n"${verse.text}"\n\nShared via Manna Bible App`,
+            });
+        } catch (error) {
+            console.log(error.message);
+        }
+    };
+
+    const displayVerses = savedVerses.filter((verse) =>
+        verse.reference.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        verse.text.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
     return (
         <SafeAreaView className="flex-1 bg-white dark:bg-background-dark">
             {/* Elegant Header */}
             <View className="border-b border-slate-100 bg-white/90 px-6 py-4 dark:border-slate-800 dark:bg-background-dark/90">
                 <View className="flex-row items-center justify-between">
-                    <TouchableOpacity className="h-10 w-10 items-center justify-center rounded-full active:bg-slate-100 dark:active:bg-white/5">
-                        <MaterialIcons name="arrow-back" size={24} className="text-slate-900 dark:text-slate-100" />
-                    </TouchableOpacity>
+                    <View className="h-10 w-10 overflow-hidden rounded-full items-center justify-center bg-slate-50 dark:bg-white/5">
+                        <MaterialIcons name="bookmarks" size={20} className="text-primary dark:text-accent" />
+                    </View>
                     <Text className="text-xl font-black tracking-tighter text-primary dark:text-white">
-                        Saved Items
+                        My Library
                     </Text>
                     <TouchableOpacity className="h-10 w-10 items-center justify-center rounded-full bg-slate-100 dark:bg-white/5">
                         <MaterialIcons name="filter-list" size={20} className="text-slate-400 dark:text-slate-500" />
@@ -30,6 +50,8 @@ export default function SavedScreen() {
                             placeholder="Search your library..."
                             placeholderTextColor="#94a3b8"
                             className="ml-3 flex-1 text-base font-medium text-slate-900 dark:text-slate-100"
+                            onChangeText={setSearchQuery}
+                            value={searchQuery}
                         />
                     </View>
                 </View>
@@ -50,54 +72,62 @@ export default function SavedScreen() {
                 {/* Saved Items List */}
                 <View className="px-6 gap-6 pb-32">
                     <Text className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">
-                        Recent Highlights
+                        {displayVerses.length > 0 ? "Saved Verses" : (searchQuery ? "No matches found" : "Your library is empty")}
                     </Text>
 
-                    {/* Premium Verse Card 1 */}
-                    <View className="rounded-[2.5rem] border border-slate-100 bg-white p-7 shadow-xl dark:border-slate-800 dark:bg-slate-900/40">
-                        <View className="flex-row items-center justify-between mb-4">
-                            <View className="flex-row items-center gap-2">
-                                <View className="h-2 w-2 rounded-full bg-yellow-400" />
-                                <Text className="text-xs font-black uppercase tracking-widest text-primary dark:text-accent">John 3:16</Text>
+                    {displayVerses.map((verse) => (
+                        <TouchableOpacity
+                            key={verse.id}
+                            activeOpacity={0.9}
+                            onPress={() => console.log("Selected Verse Data:", verse)}
+                            className="rounded-[2.5rem] border border-slate-100 bg-white p-7 shadow-xl dark:border-slate-800 dark:bg-slate-900/40"
+                        >
+                            <View className="flex-row items-center justify-between mb-4">
+                                <View className="flex-row items-center gap-2">
+                                    <View className="h-2 w-2 rounded-full bg-accent" />
+                                    <Text className="text-xs font-black uppercase tracking-widest text-primary dark:text-accent">
+                                        {verse.reference}
+                                    </Text>
+                                </View>
+                                <TouchableOpacity
+                                    onPress={() => handleShare(verse)}
+                                    className="h-10 w-10 items-center justify-center rounded-full bg-slate-50 dark:bg-white/5"
+                                >
+                                    <MaterialIcons name="share" size={18} className="text-slate-400" />
+                                </TouchableOpacity>
                             </View>
-                            <TouchableOpacity className="h-8 w-8 items-center justify-center rounded-full bg-slate-50 dark:bg-white/5">
-                                <MaterialIcons name="share" size={16} className="text-slate-400" />
-                            </TouchableOpacity>
-                        </View>
-                        <Text className="text-xl font-serif italic leading-relaxed text-slate-900 dark:text-white">
-                            "For God so loved the world, that he gave his only begotten Son..."
-                        </Text>
-                        <View className="mt-6 flex-row items-center justify-between border-t border-slate-50 pt-4 dark:border-slate-800">
-                            <Text className="text-[10px] font-bold text-slate-300">Added Sep 12, 2024</Text>
-                            <TouchableOpacity>
-                                <MaterialIcons name="delete-outline" size={18} color="#f87171" opacity={0.6} />
-                            </TouchableOpacity>
-                        </View>
-                    </View>
+                            <Text className="text-xl font-serif italic leading-relaxed text-slate-900 dark:text-white">
+                                "{verse.text}"
+                            </Text>
+                            <View className="mt-6 flex-row items-center justify-between border-t border-slate-50 pt-4 dark:border-slate-800">
+                                <Text className="text-[10px] font-bold text-slate-300">
+                                    {verse.version || "NIV"} • {new Date(verse.savedAt).toLocaleDateString()}
+                                </Text>
+                                <TouchableOpacity onPress={() => removeVerse(verse.id)}>
+                                    <MaterialIcons name="delete-outline" size={20} color="#f87171" opacity={0.6} />
+                                </TouchableOpacity>
+                            </View>
+                        </TouchableOpacity>
+                    ))}
 
-                    {/* Premium Verse Card 2 */}
-                    <View className="rounded-[2.5rem] border border-slate-100 bg-white p-7 shadow-xl dark:border-slate-800 dark:bg-slate-900/40">
-                        <View className="flex-row items-center justify-between mb-4">
-                            <View className="flex-row items-center gap-2">
-                                <View className="h-2 w-2 rounded-full bg-emerald-400" />
-                                <Text className="text-xs font-black uppercase tracking-widest text-primary dark:text-accent">Psalm 23:1</Text>
-                            </View>
-                            <TouchableOpacity className="h-8 w-8 items-center justify-center rounded-full bg-slate-50 dark:bg-white/5">
-                                <MaterialIcons name="share" size={16} className="text-slate-400" />
-                            </TouchableOpacity>
+                    {displayVerses.length === 0 && (
+                        <View className="py-20 items-center justify-center opacity-30">
+                            <MaterialIcons 
+                                name={searchQuery ? "search-off" : "bookmark-border"} 
+                                size={64} 
+                                color="#94a3b8" 
+                            />
+                            <Text className="mt-4 text-sm font-bold text-slate-400 text-center px-10">
+                                {searchQuery 
+                                    ? `No matches found for "${searchQuery}"` 
+                                    : "Save your favorite verses to see them here."
+                                }
+                            </Text>
                         </View>
-                        <Text className="text-xl font-serif italic leading-relaxed text-slate-900 dark:text-white">
-                            "The Lord is my shepherd; I shall not want."
-                        </Text>
-                        <View className="mt-6 flex-row items-center justify-between border-t border-slate-50 pt-4 dark:border-slate-800">
-                            <Text className="text-[10px] font-bold text-slate-300">Added Oct 1, 2024</Text>
-                            <TouchableOpacity>
-                                <MaterialIcons name="delete-outline" size={18} color="#f87171" opacity={0.6} />
-                            </TouchableOpacity>
-                        </View>
-                    </View>
+                    )}
                 </View>
             </ScrollView>
         </SafeAreaView>
     );
 }
+

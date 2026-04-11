@@ -42,6 +42,7 @@ export default function BibleHtmlRenderer({
   isTamil,
   highlights = {},
   selectedVerseId = null,
+  chapterId = null,
   onVersePress,
   onVerseLongPress
 }) {
@@ -51,13 +52,31 @@ export default function BibleHtmlRenderer({
   // 1. Process HTML: Block Isolation
   const processedHtml = React.useMemo(() => {
     if (!html) return '';
-    let currentChapterId = null;
-    let currentVerseNum = null;
-    let result = '';
-
     // Instead of stripping <p>, convert to <div> to keep classes (like s1, s2)
     const preserved = html.replace(/<p/g, '<div').replace(/<\/p>/g, '</div>');
+    
+    // Use the passed chapterId or attempt to find it from ANY element that has it
+    let baseId = chapterId;
+    if (!baseId) {
+      const allSids = preserved.match(/data-sid="([^"]+)"/g);
+      if (allSids) {
+        for (const sidStr of allSids) {
+          const match = sidStr.match(/"([^"]+)"/);
+          if (match) {
+            const val = match[1]; // e.g. "GEN 1:1"
+            const parts = val.split(/[\s:]+/); // Split by space or colon
+            if (parts.length >= 2) {
+              baseId = `${parts[0]}.${parts[1]}`;
+              break;
+            }
+          }
+        }
+      }
+    }
+
     const parts = preserved.split(/(<[^>]+>)/g);
+    let currentVerseNum = null;
+    let result = '';
 
     parts.forEach((part, index) => {
       if (part.startsWith('<')) {
@@ -71,20 +90,14 @@ export default function BibleHtmlRenderer({
           currentVerseNum = null;
         }
 
-        // Capture base chapter ID
-        const sidMatch = part.match(/data-sid="([^"]+)"/);
-        if (sidMatch && !currentChapterId) {
-          const sidParts = sidMatch[1].split('.');
-          if (sidParts.length >= 2) currentChapterId = `${sidParts[0]}.${sidParts[1]}`;
-        }
-
         // Detect Verse Marker
         if (part.includes('class="v"')) {
           const vMatch = parts[index + 1]?.match(/^\s*(\d+)/);
           if (vMatch) {
             if (currentVerseNum) result += `</div>`;
             currentVerseNum = vMatch[1];
-            result += `<div class="vblock" data-sid="${currentChapterId}.${currentVerseNum}">`;
+            const finalSid = baseId ? `${baseId}.${currentVerseNum}` : `V.${currentVerseNum}`;
+            result += `<div class="vblock" data-sid="${finalSid}">`;
           }
         }
         result += part;

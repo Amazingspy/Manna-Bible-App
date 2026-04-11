@@ -4,7 +4,8 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import BibleHtmlRenderer from "../../components/bible-html-renderer";
 import { getAllBibles, getBibleBooks, getBibleChapters, getBibleChapter } from "../../hooks/use-bible-api.js";
-// import * as Clipboard from 'expo-clipboard';
+import * as Clipboard from 'expo-clipboard';
+import { useSaved } from "../../context/SavedContext";
 
 export default function ReaderScreen() {
     const [allBibles, setAllBibles] = useState([]);
@@ -29,37 +30,81 @@ export default function ReaderScreen() {
     const colorScheme = useColorScheme();
     const [highlights, setHighlights] = useState({});
     const [selectedVerseId, setSelectedVerseId] = useState(null);
+    const { saveVerse, removeVerse, isSaved } = useSaved();
 
     const getVerseText = (vid) => {
         if (!htmlContent) return "";
         try {
-            const parts = htmlContent.split(new RegExp(`data-sid="${vid}"`));
-            if (parts.length < 2) return "";
-            const segment = parts[1].split(/<span[^>]+class="v"/)[0];
-            return segment.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' ').trim();
+
+            const vParts = vid.split('.');
+            if (vParts.length < 3) return "";
+            const markerId = `${vParts[0]} ${vParts[1]}:${vParts[2]}`;
+
+            const startMarker = `data-sid="${markerId}"`;
+            const startIdx = htmlContent.indexOf(startMarker);
+            if (startIdx === -1) return "";
+
+            let sub = htmlContent.substring(startIdx);
+            const endOfTag = sub.indexOf('>');
+            if (endOfTag === -1) return "";
+
+            sub = sub.substring(endOfTag + 1);
+
+            // Text ends at next data-sid or end of content
+            const nextVerseIdx = sub.indexOf('data-sid="');
+            if (nextVerseIdx !== -1) {
+                sub = sub.substring(0, nextVerseIdx);
+            }
+
+            return sub
+                .replace(/<[^>]*>?/gm, '')
+                .replace(/&nbsp;/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
         } catch (e) {
+            console.error("Scraping error:", e);
             return "";
         }
     };
 
-    // const copyToClipboard = async (vid) => {
-    //     const text = getVerseText(vid);
-    //     if (text) {
-    //         await Clipboard.setStringAsync(`${activeBookName} ${vid.split('.')[1]}:${vid.split('.')[2]} - ${text}`);
-    //         alert('Copied to clipboard!');
-    //     }
-    // };
-
-    const shareVerse = async (vid) => {
+    const copyToClipboard = async (vid) => {
         const text = getVerseText(vid);
         if (text) {
-            try {
-                await Share.share({
-                    message: `${activeBookName} ${vid.split('.')[1]}:${vid.split('.')[2]}\n\n"${text}"\n\nShared via Manna Bible App`,
-                });
-            } catch (error) {
-                // console.log(error.message);
-            }
+            const book = availableBooks.find(b => vid.startsWith(b.id)) || {};
+            const vParts = vid.split('.');
+            const bookRefName = book.name || activeBookName || vParts[0];
+            const reference = `${bookRefName} ${vParts[1] || '1'}:${vParts[2] || '1'}`;
+
+            await Clipboard.setStringAsync(`"${text}"\n\n — ${reference}`);
+        }
+    };
+
+    const shareVerse = async (vid) => {
+        // ... (preserving this logic in case it's needed internally, but removing it from UI)
+    };
+
+    const handleSaveVerse = (vid) => {
+        if (isSaved(vid)) {
+            removeVerse(vid);
+        } else {
+            const text = getVerseText(vid);
+            const book = availableBooks.find(b => vid.startsWith(b.id)) || {};
+
+            // Robust reference parsing
+            const vParts = vid.split('.');
+            const bookRefName = book.name || activeBookName || vParts[0];
+            const chapterRefNum = vParts[1] || '1';
+            const verseRefNum = vParts[2] || '1';
+            const reference = `${bookRefName} ${chapterRefNum}:${verseRefNum}`;
+            // console.log("Saving Verse:", { reference, text });
+            saveVerse({
+                id: vid,
+                text: text || "Text not available",
+                bookId: vParts[0],
+                reference,
+                bibleId: selectedBibleId,
+                version: selectedVersion
+            });
         }
     };
 
@@ -75,7 +120,7 @@ export default function ReaderScreen() {
                     setSelectedVersion(bibles[0].cleanAbbreviation || bibles[0].abbreviation || "KJV");
                 }
             } catch (err) {
-                // console.error("Initialization error:", err);
+                console.error("Initialization error:", err);
             } finally {
                 setIsInitialLoading(false);
             }
@@ -100,7 +145,7 @@ export default function ReaderScreen() {
                     setActiveBookName(currentBook.name);
                 }
             } catch (err) {
-                // console.error("Error fetching books:", err);
+                console.error("Error fetching books:", err);
             }
         };
         fetchBooks();
@@ -114,7 +159,7 @@ export default function ReaderScreen() {
                 const chapters = await getBibleChapters(selectedBibleId, bookId);
                 setAvailableChapters(chapters);
             } catch (err) {
-                // console.error("Error fetching chapters:", err);
+                console.error("Error fetching chapters:", err);
             }
         };
         fetchChapters();
@@ -151,7 +196,7 @@ export default function ReaderScreen() {
             const chapters = await getBibleChapters(selectedBibleId, bookId);
             setSidebarChapters(chapters);
         } catch (err) {
-            // console.error("Error fetching sidebar chapters:", err);
+            console.error("Error fetching sidebar chapters:", err);
         } finally {
             setIsFetchingSidebarChapters(false);
         }
@@ -335,6 +380,7 @@ export default function ReaderScreen() {
                                 isTamil={currentBible.language?.id === 'tam' || (currentBible.name || '').includes('Tamil')}
                                 highlights={highlights}
                                 selectedVerseId={selectedVerseId}
+                                chapterId={activeChapter}
                                 onVersePress={(vid) => setSelectedVerseId(prev => prev === vid ? null : vid)}
                                 onVerseLongPress={(vid) => setSelectedVerseId(vid)}
                             />
@@ -392,7 +438,7 @@ export default function ReaderScreen() {
                     <View className="flex-row items-center gap-6">
                         <TouchableOpacity
                             onPress={() => {
-                                // copyToClipboard(selectedVerseId);
+                                copyToClipboard(selectedVerseId);
                                 setSelectedVerseId(null);
                             }}
                             className="active:scale-90"
@@ -402,12 +448,16 @@ export default function ReaderScreen() {
 
                         <TouchableOpacity
                             onPress={() => {
-                                shareVerse(selectedVerseId);
+                                handleSaveVerse(selectedVerseId);
                                 setSelectedVerseId(null);
                             }}
                             className="active:scale-90"
                         >
-                            <MaterialIcons name="share" size={20} color="white" />
+                            <MaterialIcons
+                                name={isSaved(selectedVerseId) ? "bookmark" : "bookmark-border"}
+                                size={22}
+                                color={isSaved(selectedVerseId) ? "#f97316" : "white"}
+                            />
                         </TouchableOpacity>
 
                         <TouchableOpacity

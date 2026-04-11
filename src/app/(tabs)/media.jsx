@@ -264,32 +264,38 @@ export default function MediaScreen() {
     return (
         <SafeAreaView className="flex-1 bg-white dark:bg-background-dark pb-6">
             <View className="flex-1">
-                <FlatList
-                    data={filteredVideos}
-                    keyExtractor={(item) => item.id}
-                    extraData={searchQuery}
-                    ListHeaderComponent={
-                        <RenderHeader
-                            searchQuery={searchQuery}
-                            setSearchQuery={setSearchQuery}
-                            categories={categories}
-                            selectedCategory={selectedCategory}
-                            setSelectedCategory={setSelectedCategory}
-                        />
-                    }
-                    renderItem={({ item }) => (
-                        <VideoItem
-                            item={item}
-                            onPress={() => router.push({
-                                pathname: '/video/player',
-                                params: { ...item }
-                            })}
-                        />
-                    )}
-                    ListEmptyComponent={<RenderEmpty loading={loading} searchQuery={searchQuery} />}
-                    showsVerticalScrollIndicator={false}
-                    contentContainerStyle={{ paddingBottom: 80 }}
+                <RenderHeader
+                    searchQuery={searchQuery}
+                    setSearchQuery={setSearchQuery}
+                    categories={categories}
+                    selectedCategory={selectedCategory}
+                    setSelectedCategory={setSelectedCategory}
                 />
+
+                <View className="flex-1">
+                    <View className="px-6 pt-6 pb-2">
+                        <Text className="text-lg font-black text-slate-900 dark:text-white">
+                            Video Overviews
+                        </Text>
+                    </View>
+                    <FlatList
+                        data={filteredVideos}
+                        keyExtractor={(item) => item.id}
+                        extraData={searchQuery}
+                        renderItem={({ item }) => (
+                            <VideoItem
+                                item={item}
+                                onPress={() => router.push({
+                                    pathname: '/video/player',
+                                    params: { ...item }
+                                })}
+                            />
+                        )}
+                        ListEmptyComponent={<RenderEmpty loading={loading} searchQuery={searchQuery} />}
+                        showsVerticalScrollIndicator={false}
+                        contentContainerStyle={{ paddingBottom: 80 }}
+                    />
+                </View>
             </View>
         </SafeAreaView>
     );

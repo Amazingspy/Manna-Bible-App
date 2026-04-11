@@ -71,7 +71,47 @@ app.get('/videos', async (req, res) => {
 	}
 });
 
+/**
+ * POST /auth/generate-token
+ * Generates a custom JWT token for native authentication
+ */
+app.post('/auth/generate-token', async (req, res) => {
+	try {
+		const { email, first_name, last_name } = req.body;
+		
+		if (!email) {
+			return res.status(400).json({ error: "Email is required" });
+		}
 
+		const catalystApp = catalyst.initialize(req);
+		const userManagement = catalystApp.userManagement();
+
+		// In a real app, you would verify the password here
+		// For now, we generate a token for the provided user details
+		const tokenConfig = {
+			type: 'web', 
+			user_details: {
+				email_id: email,
+				first_name: first_name || "Manna",
+				last_name: last_name || "User"
+			}
+		};
+
+		const customToken = await userManagement.generateCustomToken(tokenConfig);
+
+		res.json({
+			message: "Token generated successfully",
+			token: customToken
+		});
+
+	} catch (error) {
+		console.error("Auth Error:", error);
+		res.status(500).json({
+			error: 'Failed to generate custom token',
+			details: error.message || String(error)
+		});
+	}
+});
 
 
 app.all('/', (req, res) => {
