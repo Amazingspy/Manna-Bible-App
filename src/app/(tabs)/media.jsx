@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import React, { useState, useEffect } from "react";
 import { FlatList, Image, ScrollView, Text, TextInput, TouchableOpacity, View, Platform, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useColorScheme } from "nativewind";
 import { useEvent } from "expo";
 import { useVideoPlayer, VideoView } from "expo-video";
 
@@ -51,19 +52,19 @@ const CATEGORIES = [
 
 // --- Helper Components & Renders (Moved outside for stability) ---
 
-const RenderHeader = ({ searchQuery, setSearchQuery, categories, selectedCategory, setSelectedCategory }) => (
+const RenderHeader = ({ searchQuery, setSearchQuery, categories, selectedCategory, setSelectedCategory, isDark }) => (
     <View className="bg-white dark:bg-background-dark pb-4 border-b border-slate-100 dark:border-slate-800">
         {/* Elegant Top Header */}
         <View className="px-6 py-4">
             <View className="flex-row items-center justify-between">
                 <TouchableOpacity className="h-10 w-10 items-center justify-center rounded-full active:bg-slate-100 dark:active:bg-white/5">
-                    <MaterialIcons name="menu" size={24} className="text-slate-900 dark:text-slate-100" />
+                    <MaterialIcons name="menu" size={24} color={isDark ? "#f1f5f9" : "#0f172a"} />
                 </TouchableOpacity>
                 <Text className="text-xl font-black tracking-tighter text-primary dark:text-white">
                     Manna Media
                 </Text>
                 <TouchableOpacity className="h-10 w-10 items-center justify-center rounded-full bg-slate-100 dark:bg-white/5">
-                    <MaterialIcons name="account-circle" size={24} className="text-slate-400 dark:text-slate-500" />
+                    <MaterialIcons name="account-circle" size={24} color={isDark ? "#94a3b8" : "#64748b"} />
                 </TouchableOpacity>
             </View>
         </View>
@@ -71,7 +72,7 @@ const RenderHeader = ({ searchQuery, setSearchQuery, categories, selectedCategor
         {/* Modern Search */}
         <View className="px-6 py-2 pb-4 mt-4">
             <View className="flex-row items-center h-12 rounded-2xl border border-slate-100 bg-slate-100/30 px-4 dark:border-slate-800 dark:bg-slate-800/50">
-                <MaterialIcons name="search" size={20} className="text-slate-400" />
+                <MaterialIcons name="search" size={20} color={isDark ? "#94a3b8" : "#64748b"} />
                 <TextInput
                     placeholder="Search overviews (e.g. Genesis)"
                     placeholderTextColor="#94a3b8"
@@ -81,7 +82,7 @@ const RenderHeader = ({ searchQuery, setSearchQuery, categories, selectedCategor
                 />
                 {searchQuery.length > 0 && (
                     <TouchableOpacity onPress={() => setSearchQuery("")}>
-                        <MaterialIcons name="close" size={20} className="text-slate-400" />
+                        <MaterialIcons name="close" size={20} color={isDark ? "#94a3b8" : "#64748b"} />
                     </TouchableOpacity>
                 )}
             </View>
@@ -109,7 +110,7 @@ const RenderHeader = ({ searchQuery, setSearchQuery, categories, selectedCategor
                                 <MaterialIcons
                                     name={cat.icon}
                                     size={24}
-                                    color={isActive ? "white" : "#94a3b8"}
+                                    color={isActive ? "white" : (isDark ? "#94a3b8" : "#64748b")}
                                 />
                             </View>
                             <Text className={`text-[10px] font-bold uppercase tracking-widest ${isActive ? "text-primary dark:text-accent" : "text-slate-500"
@@ -203,6 +204,8 @@ const RenderEmpty = ({ loading, searchQuery }) => (
 
 export default function MediaScreen() {
     const router = useRouter();
+    const { colorScheme } = useColorScheme();
+    const isDark = colorScheme === 'dark';
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedCategory, setSelectedCategory] = useState("All");
     const [videos, setVideos] = useState([]);
@@ -270,6 +273,7 @@ export default function MediaScreen() {
                     categories={categories}
                     selectedCategory={selectedCategory}
                     setSelectedCategory={setSelectedCategory}
+                    isDark={isDark}
                 />
 
                 <View className="flex-1">

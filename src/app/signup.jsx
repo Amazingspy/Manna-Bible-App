@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
 
 export default function SignupScreen() {
-    const { login } = useAuth();
+    const { authenticateWithJwt } = useAuth();
     const [email, setEmail] = useState('');
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
@@ -23,26 +23,9 @@ export default function SignupScreen() {
 
         setLoading(true);
         try {
-            // Updated to use your new Catalyst backend endpoint
-            const response = await fetch('https://manna-60059371341.development.catalystserverless.in/server/manna_function/auth/generate-token', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    email, 
-                    first_name: firstName, 
-                    last_name: lastName 
-                })
-            });
-
-            const data = await response.json();
-
-            if (response.ok && data.token) {
-                // Register/Login success
-                await login({ email, name: firstName, token: data.token });
-                router.replace('/(tabs)');
-            } else {
-                throw new Error(data.error || "Failed to create account");
-            }
+            // Using the new centralized JWT authentication helper
+            await authenticateWithJwt(email, firstName, lastName);
+            router.replace('/(tabs)');
         } catch (error) {
             console.error("Signup Error:", error);
             Alert.alert("Signup Failed", error.message);

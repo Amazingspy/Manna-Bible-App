@@ -158,6 +158,31 @@ export const getBibleChapter = async (bibleId, chapterId) => {
 };
 
 /**
+ * Searches the entire Bible for a specific query.
+ */
+export const searchBible = async (bibleId, query) => {
+  if (!bibleId || !query) return [];
+  try {
+    const response = await fetch(`${BASE_URL}bibles/${bibleId}/search?query=${encodeURIComponent(query)}&limit=50&sort=relevance`, {
+      headers: {
+        'Accept': 'application/json',
+        'api-key': API_CONFIG['api-key'],
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    return result.data?.verses || [];
+  } catch (error) {
+    console.error('Search error:', error);
+    return [];
+  }
+};
+
+/**
  * Extracts unique languages from a list of bibles, filtered to English and Tamil.
  */
 export const extractLanguages = (bibles) => {

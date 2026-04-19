@@ -1,12 +1,15 @@
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useColorScheme } from "nativewind";
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, Share, ActivityIndicator } from 'react-native';
-import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
+import { ActivityIndicator, Image, ScrollView, Share, Text, TouchableOpacity, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEvent } from 'expo';
 
 export default function VideoPlaybackScreen() {
+    const { colorScheme } = useColorScheme();
+    const isDark = colorScheme === 'dark';
     const router = useRouter();
     const params = useLocalSearchParams();
     
@@ -28,6 +31,7 @@ export default function VideoPlaybackScreen() {
     const { isPlaying } = useEvent(player, 'playingChange', { isPlaying: player.playing });
     const { status } = useEvent(player, 'statusChange', { status: player.status });
 
+    /*
     const handleShare = async () => {
         try {
             await Share.share({
@@ -38,30 +42,24 @@ export default function VideoPlaybackScreen() {
             console.error('Error sharing:', error);
         }
     };
+    */
 
     return (
         <SafeAreaView className="flex-1 bg-white dark:bg-background-dark" edges={['top']}>
             <Stack.Screen options={{ headerShown: false }} />
             
-            {/* Header */}
-            <View className="flex-row items-center justify-between px-4 py-3 bg-white dark:bg-background-dark border-b border-slate-100 dark:border-slate-800">
-                <TouchableOpacity 
+            {/* Centered Header */}
+            <View className="flex-row items-center justify-center px-4 h-14 bg-white dark:bg-background-dark border-b border-slate-100 dark:border-slate-800 relative">
+                <TouchableOpacity
                     onPress={() => router.back()}
-                    className="h-10 w-10 items-center justify-center rounded-full active:bg-slate-100 dark:active:bg-white/5"
+                    className="absolute left-4 h-10 w-10 items-center justify-center rounded-full active:bg-slate-100 dark:active:bg-white/5 z-10"
                 >
-                    <MaterialIcons name="arrow-back" size={24} className="text-slate-900 dark:text-white" />
+                    <MaterialIcons name="arrow-back" size={24} color={isDark ? "#f1f5f9" : "#0f172a"} />
                 </TouchableOpacity>
                 
-                <Text className="text-lg font-black tracking-tight text-slate-900 dark:text-white">
+                <Text className="text-lg font-black tracking-tighter text-slate-900 dark:text-white">
                     Book Overview
                 </Text>
-                
-                <TouchableOpacity 
-                    onPress={handleShare}
-                    className="h-10 w-10 items-center justify-center rounded-full active:bg-slate-100 dark:active:bg-white/5"
-                >
-                    <MaterialIcons name="share" size={22} className="text-slate-900 dark:text-white" />
-                </TouchableOpacity>
             </View>
 
             <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
@@ -95,7 +93,7 @@ export default function VideoPlaybackScreen() {
                             </Text>
                         </View>
                         <TouchableOpacity className="h-12 w-12 items-center justify-center rounded-2xl bg-slate-50 dark:bg-white/5">
-                            <MaterialIcons name="bookmark-outline" size={24} className="text-slate-400" />
+                            <MaterialIcons name="bookmark-outline" size={24} color={isDark ? "#94a3b8" : "#64748b"} />
                         </TouchableOpacity>
                     </View>
 
@@ -108,7 +106,7 @@ export default function VideoPlaybackScreen() {
                         className="mt-8 flex-row items-center justify-center bg-primary dark:bg-accent h-14 rounded-2xl shadow-lg active:scale-[0.98]"
                         onPress={() => {}}
                     >
-                        <MaterialIcons name="menu-book" size={20} color="white" />
+                        <MaterialIcons name="menu-book" size={20} color={isDark ? "#f97316" : "#0f172a"} />
                         <Text className="ml-3 text-base font-black text-white">Read {title.split(' ')[0]} Chapter 1</Text>
                     </TouchableOpacity>
 

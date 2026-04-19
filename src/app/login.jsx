@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
 
 export default function LoginScreen() {
-    const { login } = useAuth();
+    const { authenticateWithJwt } = useAuth();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
@@ -21,23 +21,10 @@ export default function LoginScreen() {
 
         setLoading(true);
         try {
-            // Updated to use your new Catalyst backend endpoint
-            const response = await fetch('https://manna-60059371341.development.catalystserverless.in/server/manna_function/auth/generate-token', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email })
-            });
-
-            const data = await response.json();
-
-            if (response.ok && data.token) {
-                // In a real app, you would sign in with JWT here using the Catalyst SDK
-                // For this implementation, we simulate the finalized login session
-                await login({ email, name: 'Manna User', token: data.token });
-                router.replace('/(tabs)');
-            } else {
-                throw new Error(data.error || "Failed to generate session token");
-            }
+            // Using the new centralized JWT authentication helper
+            // During login, we assume Manna User if names aren't provided by the login form
+            await authenticateWithJwt(email, 'Manna', 'User');
+            router.replace('/(tabs)');
         } catch (error) {
             console.error("Login Error:", error);
             Alert.alert("Login Failed", error.message);

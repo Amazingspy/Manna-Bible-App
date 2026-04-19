@@ -14,6 +14,9 @@ function InitialLayout() {
     const router = useRouter();
 
     useEffect(() => {
+        // [BARRIER-FREE MISSION] 
+        // Commenting out authentication redirects to ensure the app is accessible to everyone without barriers.
+        /*
         if (isLoading) return;
 
         const inAuthGroup = segments[0] === '(tabs)';
@@ -25,6 +28,7 @@ function InitialLayout() {
             // Redirect to tabs if authenticated and on auth screens or root
             router.replace('/(tabs)');
         }
+        */
     }, [isAuthenticated, isLoading, segments]);
 
     if (isLoading) {

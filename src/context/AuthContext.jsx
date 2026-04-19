@@ -39,6 +39,54 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    /**
+     * Authenticates with Catalyst using a JWT token generated from the backend.
+     * This mimics the catalyst.auth.signinWithJwt flow.
+     */
+    const authenticateWithJwt = async (email, firstName, lastName) => {
+        try {
+            const response = await fetch('https://manna-60059371341.development.catalystserverless.in/server/manna_function/auth/generate-token', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    email, 
+                    first_name: firstName, 
+                    last_name: lastName 
+                })
+            });
+
+            const responseText = await response.text();
+            let data;
+            try {
+                data = JSON.parse(responseText);
+            } catch (e) {
+                console.error("Backend returned non-JSON response:", responseText);
+                throw new Error("Server returned an invalid response. Please check if the function is deployed.");
+            }
+
+            if (!response.ok) {
+                throw new Error(data.error || "Authentication failed");
+            }
+
+            if (data.jwt_token) {
+                const userData = {
+                    email,
+                    name: firstName ? `${firstName} ${lastName || ''}`.trim() : 'Manna User',
+                    token: data.jwt_token,
+                    clientId: data.client_id,
+                    scopes: data.scopes
+                };
+                await login(userData);
+                return userData;
+            } else {
+                throw new Error("No token received from backend");
+            }
+        } catch (error) {
+            console.error("JWT Auth Error:", error);
+            throw error;
+        }
+    };
+
     const logout = async () => {
         setUser(null);
         try {
@@ -51,7 +99,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, isLoading, login, logout, isAuthenticated: !!user }}>
+        <AuthContext.Provider value={{ user, isLoading, login, authenticateWithJwt, logout, isAuthenticated: !!user }}>
             {children}
         </AuthContext.Provider>
     );

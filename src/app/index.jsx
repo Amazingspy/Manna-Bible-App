@@ -53,19 +53,22 @@ export default function WelcomeScreen() {
                         {/* Action Buttons */}
                         <View className="gap-4 w-full">
                             <TouchableOpacity
-                                onPress={() => router.push("/signup")}
+                                onPress={() => router.replace("/(tabs)")}
                                 activeOpacity={0.6}
                                 className="h-16 w-full items-center justify-center overflow-hidden rounded-2xl bg-[#FFD700] shadow-2xl active:scale-95"
                             >
                                 <Text className="text-lg font-bold tracking-tight text-slate-900">Get Started</Text>
                             </TouchableOpacity>
 
+                            {/* [BARRIER-FREE MISSION] Commenting out Sign In to avoid unnecessary barriers */}
+                            {/* 
                             <TouchableOpacity
                                 onPress={() => router.push("/login")}
                                 className="h-16 w-full items-center justify-center rounded-2xl border border-white/60 bg-white/10 backdrop-blur-md active:scale-95"
                                 activeOpacity={0.6}>
                                 <Text className="text-lg font-bold text-white">Sign In</Text>
                             </TouchableOpacity>
+                            */}
                         </View>
 
                         {/* Disclaimer/Footer */}

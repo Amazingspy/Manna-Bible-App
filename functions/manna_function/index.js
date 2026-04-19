@@ -71,14 +71,55 @@ app.get('/videos', async (req, res) => {
 	}
 });
 
+// signup(add a new user)
+app.post('/signup', async (req, res) => {
+	try {
+		const { email, first_name, last_name } = req.body;
+
+		if (!email) {
+			return res.status(400).json({ error: "Email is required" });
+		}
+
+		const catalystApp = catalyst.initialize(req);
+		const Auth = catalystApp.auth();
+
+		const userDetails = {
+			email_id: email,
+			first_name: first_name || "Manna",
+			last_name: last_name || "User"
+		};
+
+		try {
+			const user = await Auth.signUp(userDetails);
+			console.log("User created successfully", user);
+			return res.json({
+				message: "User created successfully",
+				user: user
+			});
+		} catch (error) {
+			console.error("Auth Sign-up Error:", error);
+			return res.status(500).json({
+				error: 'Failed to create user',
+				details: error.message || String(error)
+			});
+		}
+	} catch (error) {
+		console.error("General Auth Error:", error);
+		res.status(500).json({
+			error: 'Internal server error during signup',
+			details: error.message || String(error)
+		});
+	}
+});
+
 /**
  * POST /auth/generate-token
  * Generates a custom JWT token for native authentication
  */
 app.post('/auth/generate-token', async (req, res) => {
 	try {
-		const { email, first_name, last_name } = req.body;
-		
+		const { email, first_name, last_name, org_id, role_name } = req.body;
+
 		if (!email) {
 			return res.status(400).json({ error: "Email is required" });
 		}
@@ -86,26 +127,31 @@ app.post('/auth/generate-token', async (req, res) => {
 		const catalystApp = catalyst.initialize(req);
 		const userManagement = catalystApp.userManagement();
 
-		// In a real app, you would verify the password here
-		// For now, we generate a token for the provided user details
+		// Use the structure provided by the user for custom token generation
 		const tokenConfig = {
-			type: 'web', 
+			type: 'web',
 			user_details: {
 				email_id: email,
 				first_name: first_name || "Manna",
-				last_name: last_name || "User"
+				last_name: last_name || "User",
+				org_id: org_id || undefined,
+				role_name: role_name || undefined
 			}
 		};
 
 		const customToken = await userManagement.generateCustomToken(tokenConfig);
 
+		// Return the exact structure required by the Catalyst SDK
 		res.json({
 			message: "Token generated successfully",
-			token: customToken
+			client_id: customToken.client_id,
+			scopes: customToken.scopes,
+			jwt_token: customToken.jwt_token,
+			token: customToken.jwt_token // Maintain backward compatibility if needed
 		});
 
 	} catch (error) {
-		console.error("Auth Error:", error);
+		console.error("Token Generation Error:", error);
 		res.status(500).json({
 			error: 'Failed to generate custom token',
 			details: error.message || String(error)

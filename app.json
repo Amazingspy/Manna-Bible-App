@@ -44,6 +44,9 @@
           "supportsBackgroundPlayback": true,
           "supportsPictureInPicture": true
         }
+      ],
+      [
+        "expo-localization"
       ]
     ],
     "experiments": {

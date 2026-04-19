@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { ScrollView, View, Text, TouchableOpacity, useColorScheme, ActivityIndicator, Share, Modal } from "react-native";
+import { ScrollView, View, Text, TouchableOpacity, ActivityIndicator, Share, Modal, TextInput, FlatList } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useColorScheme } from "nativewind";
 import BibleHtmlRenderer from "../../components/bible-html-renderer";
-import { getAllBibles, getBibleBooks, getBibleChapters, getBibleChapter } from "../../hooks/use-bible-api.js";
+import { getAllBibles, getBibleBooks, getBibleChapters, getBibleChapter, searchBible } from "../../hooks/use-bible-api.js";
 import * as Clipboard from 'expo-clipboard';
 import { useSaved } from "../../context/SavedContext";
+import { parseBibleSearch } from "../../utils/bible-search-utils";
 
 export default function ReaderScreen() {
     const [allBibles, setAllBibles] = useState([]);
@@ -27,10 +29,18 @@ export default function ReaderScreen() {
     const [htmlContent, setHtmlContent] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isInitialLoading, setIsInitialLoading] = useState(true);
-    const colorScheme = useColorScheme();
+    const { colorScheme } = useColorScheme();
+    const isDark = colorScheme === 'dark';
     const [highlights, setHighlights] = useState({});
     const [selectedVerseId, setSelectedVerseId] = useState(null);
     const { saveVerse, removeVerse, isSaved } = useSaved();
+
+    // Search State
+    const [isSearchActive, setIsSearchActive] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [searchResults, setSearchResults] = useState([]);
+    const [isSearching, setIsSearching] = useState(false);
+    const [showResults, setShowResults] = useState(false);
 
     const getVerseText = (vid) => {
         if (!htmlContent) return "";
@@ -77,10 +87,6 @@ export default function ReaderScreen() {
 
             await Clipboard.setStringAsync(`"${text}"\n\n — ${reference}`);
         }
-    };
-
-    const shareVerse = async (vid) => {
-        // ... (preserving this logic in case it's needed internally, but removing it from UI)
     };
 
     const handleSaveVerse = (vid) => {
@@ -226,11 +232,41 @@ export default function ReaderScreen() {
         return isTamil ? 'அதிகாரம்' : 'Chapter';
     };
 
+    const handleSearch = async () => {
+        if (!searchQuery.trim()) return;
+        
+        const parsed = parseBibleSearch(searchQuery);
+        if (!parsed) return;
+
+        if (parsed.type === 'reference') {
+            const fullChapterId = `${parsed.bookId}.${parsed.chapter}`;
+            setActiveChapter(fullChapterId);
+            setIsSearchActive(false);
+            setSearchQuery("");
+            // If verse is specified, we might want to highlight or scroll to it
+            if (parsed.verse) {
+                setSelectedVerseId(`${fullChapterId}.${parsed.verse}`);
+            }
+        } else {
+            // Full text search
+            setIsSearching(true);
+            setShowResults(true);
+            try {
+                const results = await searchBible(selectedBibleId, searchQuery);
+                setSearchResults(results);
+            } catch (err) {
+                console.error("Search failed:", err);
+            } finally {
+                setIsSearching(false);
+            }
+        }
+    };
+
     if (isInitialLoading) {
         return (
             <SafeAreaView className="flex-1 items-center justify-center bg-white dark:bg-background-dark">
                 <ActivityIndicator size="large" color="#1a355b" />
-                <Text className="mt-4 text-slate-400 font-bold uppercase tracking-widest text-[10px]">Initializing Library...</Text>
+                <Text className="mt-4 text-slate-400 font-bold uppercase tracking-widest text-[10px]">Loading...</Text>
             </SafeAreaView>
         );
     }
@@ -243,7 +279,7 @@ export default function ReaderScreen() {
                         <View className="flex-row items-center justify-between mb-6 px-2">
                             <Text className="text-2xl font-black text-primary dark:text-white">Books</Text>
                             <TouchableOpacity onPress={() => setIsSidebarOpen(false)} className="h-10 w-10 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800">
-                                <MaterialIcons name="close" size={20} color={colorScheme === 'dark' ? 'white' : '#0f172a'} />
+                                <MaterialIcons name="close" size={20} color={isDark ? 'white' : '#0f172a'} />
                             </TouchableOpacity>
                         </View>
                         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
@@ -262,7 +298,7 @@ export default function ReaderScreen() {
                                             {isFetchingSidebarChapters ? (
                                                 <View className="w-full flex-row items-center justify-center py-4">
                                                     <ActivityIndicator size="small" color="#1a355b" />
-                                                    <Text className="ml-2 text-xs font-bold text-slate-400">Loading Chapters...</Text>
+                                                    <Text className="ml-2 text-xs font-bold text-slate-400">Loading...</Text>
                                                 </View>
                                             ) : (
                                                 sidebarChapters.filter(c => c.number !== 'intro').map(chapter => {
@@ -295,18 +331,104 @@ export default function ReaderScreen() {
 
             <View className="border-b border-slate-100 bg-white dark:border-slate-800 dark:bg-background-dark">
                 <View className="flex-row items-center justify-between px-6 py-4">
-                    <TouchableOpacity onPress={() => setIsSidebarOpen(true)} className="h-10 w-10 items-center justify-center rounded-full active:bg-slate-100 dark:active:bg-white/5">
-                        <MaterialIcons name="menu" size={24} color={colorScheme === 'dark' ? '#f1f5f9' : '#0f172a'} />
-                    </TouchableOpacity>
-                    <View className="items-center">
-                        <Text className="text-xl font-black tracking-tighter text-primary dark:text-slate-100">Manna</Text>
-                        <Text className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Word of God</Text>
-                    </View>
-                    <TouchableOpacity className="h-10 w-10 items-center justify-center rounded-full active:bg-slate-100 dark:active:bg-white/5">
-                        <MaterialIcons name="search" size={24} color={colorScheme === 'dark' ? '#f1f5f9' : '#0f172a'} />
-                    </TouchableOpacity>
+                    {isSearchActive ? (
+                        <View className="flex-1 flex-row items-center gap-2">
+                             <TouchableOpacity onPress={() => {
+                                 setIsSearchActive(false);
+                                 setSearchQuery("");
+                                 setShowResults(false);
+                             }}>
+                                <MaterialIcons name="arrow-back" size={24} color={isDark ? '#f1f5f9' : '#0f172a'} />
+                            </TouchableOpacity>
+                            <TextInput
+                                placeholder="Search 'psa' or 'In the beginning'..."
+                                placeholderTextColor="#94a3b8"
+                                value={searchQuery}
+                                onChangeText={setSearchQuery}
+                                autoFocus
+                                onSubmitEditing={handleSearch}
+                                className="flex-1 text-base font-bold text-slate-900 dark:text-white"
+                            />
+                            {searchQuery.length > 0 && (
+                                <TouchableOpacity onPress={() => setSearchQuery("")}>
+                                    <MaterialIcons name="close" size={20} color="#94a3b8" />
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                    ) : (
+                        <>
+                            <TouchableOpacity onPress={() => setIsSidebarOpen(true)} className="h-10 w-10 items-center justify-center rounded-full active:bg-slate-100 dark:active:bg-white/5">
+                                <MaterialIcons name="menu" size={24} color={isDark ? '#f1f5f9' : '#0f172a'} />
+                            </TouchableOpacity>
+                            <View className="items-center">
+                                <Text className="text-xl font-black tracking-tighter text-primary dark:text-slate-100">Manna</Text>
+                                <Text className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Word of God</Text>
+                            </View>
+                            <TouchableOpacity 
+                                onPress={() => setIsSearchActive(true)}
+                                className="h-10 w-10 items-center justify-center rounded-full active:bg-slate-100 dark:active:bg-white/5"
+                            >
+                                <MaterialIcons name="search" size={24} color={isDark ? '#f1f5f9' : '#0f172a'} />
+                            </TouchableOpacity>
+                        </>
+                    )}
                 </View>
             </View>
+
+            {/* Search Results Overlay */}
+            {showResults && (
+                <View className="absolute top-[80px] left-0 right-0 bottom-0 z-50 bg-white dark:bg-background-dark px-6">
+                    <View className="flex-row items-center justify-between py-4 border-b border-slate-100 dark:border-slate-800">
+                        <Text className="text-sm font-black uppercase tracking-widest text-slate-400">
+                             {isSearching ? "Searching..." : `${searchResults.length} Results for "${searchQuery}"`}
+                        </Text>
+                         <TouchableOpacity onPress={() => setShowResults(false)}>
+                            <Text className="text-xs font-bold text-primary dark:text-accent uppercase">Close</Text>
+                        </TouchableOpacity>
+                    </View>
+                    
+                    {isSearching ? (
+                        <View className="flex-1 items-center justify-center">
+                            <ActivityIndicator size="large" color="#1a355b" />
+                        </View>
+                    ) : (
+                        <FlatList
+                            data={searchResults}
+                            keyExtractor={(item) => item.id}
+                            renderItem={({ item }) => (
+                                <TouchableOpacity 
+                                    onPress={() => {
+                                        const parts = item.id.split('.');
+                                        setActiveChapter(`${parts[0]}.${parts[1]}`);
+                                        setSelectedVerseId(item.id);
+                                        setShowResults(false);
+                                        setIsSearchActive(false);
+                                        setSearchQuery("");
+                                    }}
+                                    className="py-6 border-b border-slate-50 dark:border-slate-800/50"
+                                >
+                                    <Text className="text-xs font-black uppercase tracking-widest text-primary dark:text-accent mb-2">
+                                        {item.reference}
+                                    </Text>
+                                    <Text className="text-base font-serif italic text-slate-700 dark:text-slate-300">
+                                        "{item.text.replace(/<[^>]*>?/gm, '')}"
+                                    </Text>
+                                </TouchableOpacity>
+                            )}
+                            ListEmptyComponent={
+                                !isSearching && (
+                                    <View className="py-20 items-center">
+                                        <MaterialIcons name="search-off" size={48} color="#cbd5e1" />
+                                        <Text className="mt-4 text-slate-400 font-bold">No matches found across the Bible.</Text>
+                                    </View>
+                                )
+                            }
+                            showsVerticalScrollIndicator={false}
+                            contentContainerStyle={{ paddingBottom: 100 }}
+                        />
+                    )}
+                </View>
+            )}
 
             <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 120 }}>
                 <View className="mx-auto w-full max-w-2xl px-6">

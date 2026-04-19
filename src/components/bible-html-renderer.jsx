@@ -161,15 +161,18 @@ export default function BibleHtmlRenderer({
   // 3. Theme Styles with Version-Specific Formatting
   const themeClassesStyles = {
     ...classesStyles,
-    // Reduce Header font size for Tamil (IRV) as requested
-    s: { ...classesStyles.s, fontSize: isTamil ? 22 : 24, color: colorScheme === 'dark' ? '#ffffff' : '#1a355b' },
-    s1: { ...classesStyles.s1, fontSize: isTamil ? 22 : 24, color: colorScheme === 'dark' ? '#ffffff' : '#1a355b' },
-    s2: { ...classesStyles.s2, fontSize: isTamil ? 20 : 22, color: colorScheme === 'dark' ? '#ffffff' : '#1a355b' },
-    s3: { ...classesStyles.s3, fontSize: isTamil ? 18 : 20, color: colorScheme === 'dark' ? '#ffffff' : '#1a355b' },
-    d: { ...classesStyles.d, fontSize: isTamil ? 22 : 24, color: colorScheme === 'dark' ? '#ffffff' : '#1a355b' },
+    // Main Section Headers
+    s: { ...classesStyles.s, fontSize: isTamil ? 22 : 24, color: colorScheme === 'dark' ? '#f1f5f9' : '#1a355b' },
+    s1: { ...classesStyles.s1, fontSize: isTamil ? 22 : 24, color: colorScheme === 'dark' ? '#f1f5f9' : '#1a355b' },
+    s2: { ...classesStyles.s2, fontSize: isTamil ? 20 : 22, color: colorScheme === 'dark' ? '#f1f5f9' : '#1a355b' },
+    s3: { ...classesStyles.s3, fontSize: isTamil ? 18 : 20, color: colorScheme === 'dark' ? '#f1f5f9' : '#1a355b' },
+    d: { ...classesStyles.d, fontSize: isTamil ? 22 : 24, color: colorScheme === 'dark' ? '#f1f5f9' : '#1a355b' },
 
     // Body text colors
-    p: { ...classesStyles.p, color: colorScheme === 'dark' ? '#ffffff' : '#334155', textAlign: alignment },
+    p: { ...classesStyles.p, color: colorScheme === 'dark' ? '#f8fafc' : '#334155', textAlign: alignment },
+    q1: { ...classesStyles.q1, color: colorScheme === 'dark' ? '#f8fafc' : '#334155', textAlign: alignment },
+    q2: { ...classesStyles.q2, color: colorScheme === 'dark' ? '#f8fafc' : '#334155', textAlign: alignment },
+    m: { ...classesStyles.m, color: colorScheme === 'dark' ? '#f8fafc' : '#334155', textAlign: alignment },
     v: { ...classesStyles.v, color: colorScheme === 'dark' ? '#f97316' : '#1a355b' },
   };
 
@@ -178,7 +181,7 @@ export default function BibleHtmlRenderer({
       contentWidth={width}
       source={{ html: processedHtml }}
       classesStyles={themeClassesStyles}
-      tagsStyles={{ ...tagsStyles, p: { ...tagsStyles.p, textAlign: alignment, color: colorScheme === 'dark' ? '#ffffff' : '#334155' } }}
+      tagsStyles={{ ...tagsStyles, p: { ...tagsStyles.p, textAlign: alignment, color: colorScheme === 'dark' ? '#f8fafc' : '#334155' } }}
       ignoredStyles={['margin']}
       ignoredTags={['a', 'note', 'footnote', 'script']}
       renderers={renderers}

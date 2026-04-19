@@ -3,8 +3,11 @@ import React, { useState } from "react";
 import { ScrollView, Text, TextInput, TouchableOpacity, View, Share } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useSaved } from "../../context/SavedContext";
+import { useColorScheme } from "nativewind";
 
 export default function SavedScreen() {
+    const { colorScheme } = useColorScheme();
+    const isDark = colorScheme === 'dark';
     const { savedVerses, removeVerse } = useSaved();
     const [searchQuery, setSearchQuery] = useState("");
 
@@ -30,13 +33,13 @@ export default function SavedScreen() {
             <View className="border-b border-slate-100 bg-white/90 px-6 py-4 dark:border-slate-800 dark:bg-background-dark/90">
                 <View className="flex-row items-center justify-between">
                     <View className="h-10 w-10 overflow-hidden rounded-full items-center justify-center bg-slate-50 dark:bg-white/5">
-                        <MaterialIcons name="bookmarks" size={20} className="text-primary dark:text-accent" />
+                        <MaterialIcons name="bookmarks" size={20} color={isDark ? "#f97316" : "#0f172a"} />
                     </View>
                     <Text className="text-xl font-black tracking-tighter text-primary dark:text-white">
                         My Library
                     </Text>
                     <TouchableOpacity className="h-10 w-10 items-center justify-center rounded-full bg-slate-100 dark:bg-white/5">
-                        <MaterialIcons name="filter-list" size={20} className="text-slate-400 dark:text-slate-500" />
+                        <MaterialIcons name="filter-list" size={20} color={isDark ? "#94a3b8" : "#64748b"} />
                     </TouchableOpacity>
                 </View>
             </View>
@@ -45,7 +48,7 @@ export default function SavedScreen() {
                 {/* Modern Search */}
                 <View className="px-6 py-6">
                     <View className="flex-row items-center h-14 rounded-2xl border border-slate-100 bg-slate-100/30 px-4 dark:border-slate-800 dark:bg-slate-800/50">
-                        <MaterialIcons name="search" size={20} className="text-slate-400" />
+                        <MaterialIcons name="search" size={20} color={isDark ? "#94a3b8" : "#64748b"} />
                         <TextInput
                             placeholder="Search your library..."
                             placeholderTextColor="#94a3b8"
@@ -93,7 +96,7 @@ export default function SavedScreen() {
                                     onPress={() => handleShare(verse)}
                                     className="h-10 w-10 items-center justify-center rounded-full bg-slate-50 dark:bg-white/5"
                                 >
-                                    <MaterialIcons name="share" size={18} className="text-slate-400" />
+                                    <MaterialIcons name="share" size={18} color={isDark ? "#94a3b8" : "#64748b"} />
                                 </TouchableOpacity>
                             </View>
                             <Text className="text-xl font-serif italic leading-relaxed text-slate-900 dark:text-white">
@@ -115,7 +118,7 @@ export default function SavedScreen() {
                             <MaterialIcons 
                                 name={searchQuery ? "search-off" : "bookmark-border"} 
                                 size={64} 
-                                color="#94a3b8" 
+                                color={isDark ? "#475569" : "#94a3b8"} 
                             />
                             <Text className="mt-4 text-sm font-bold text-slate-400 text-center px-10">
                                 {searchQuery 
@@ -130,4 +133,3 @@ export default function SavedScreen() {
         </SafeAreaView>
     );
 }
-
