@@ -1,0 +1,1484 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0
+        }
+
+        body {
+            font-family: var(--font-sans, "Anthropic Sans", sans-serif);
+            background: transparent;
+            color: var(--color-text-primary, #222);
+            overflow-x: auto
+        }
+
+        h2.sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0
+        }
+
+        .wrap {
+            min-width: 900px;
+            padding: 12px 16px 32px
+        }
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 20px;
+            margin-bottom: 16px;
+            font-size: 12px
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+            display: inline-block;
+            flex-shrink: 0
+        }
+
+        .section-title {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--color-text-secondary, #666);
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            margin: 18px 0 8px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid var(--color-border-tertiary, #ddd)
+        }
+
+        svg.tree {
+            width: 100%;
+            overflow: visible;
+            display: block
+        }
+
+        /* Node colors by category */
+        .n-adam {
+            fill: #EEEDFE;
+            stroke: #534AB7
+        }
+
+        .n-pre {
+            fill: #E6F1FB;
+            stroke: #185FA5
+        }
+
+        .n-post {
+            fill: #E1F5EE;
+            stroke: #0F6E56
+        }
+
+        .n-abr {
+            fill: #FAEEDA;
+            stroke: #854F0B
+        }
+
+        .n-jacob {
+            fill: #FAECE7;
+            stroke: #993C1D
+        }
+
+        .n-tribe {
+            fill: #EAF3DE;
+            stroke: #3B6D11
+        }
+
+        .n-judge {
+            fill: #F1EFE8;
+            stroke: #5F5E5A
+        }
+
+        .n-king {
+            fill: #FBEAF0;
+            stroke: #993556
+        }
+
+        .n-nt {
+            fill: #FCEBEB;
+            stroke: #A32D2D
+        }
+
+        .n-female {
+            fill: #fff0f6;
+            stroke: #c44b80
+        }
+
+        .n-god {
+            fill: #fffde7;
+            stroke: #b8860b;
+            stroke-width: 2
+        }
+
+        .n-special {
+            fill: #fff9e6;
+            stroke: #c8a000;
+            stroke-dasharray: 4 2
+        }
+
+        text.label {
+            font-size: 11px;
+            font-weight: 500;
+            text-anchor: middle;
+            dominant-baseline: central;
+            fill: var(--color-text-primary, #222)
+        }
+
+        text.sub {
+            font-size: 9px;
+            text-anchor: middle;
+            dominant-baseline: central;
+            fill: var(--color-text-secondary, #666)
+        }
+
+        text.ref {
+            font-size: 8.5px;
+            text-anchor: middle;
+            dominant-baseline: central;
+            fill: #888;
+            font-style: italic
+        }
+
+        text.sect {
+            font-size: 10px;
+            font-weight: 500;
+            fill: var(--color-text-secondary, #777);
+            text-anchor: middle
+        }
+
+        line.edge,
+        path.edge {
+            stroke: #aaa;
+            stroke-width: 1;
+            fill: none;
+            marker-end: url(#arr)
+        }
+
+        line.edge-m,
+        path.edge-m {
+            stroke: #c44b80;
+            stroke-width: 1;
+            fill: none;
+            stroke-dasharray: 3 2;
+            marker-end: url(#arr-m)
+        }
+
+        line.edge-k,
+        path.edge-k {
+            stroke: #993556;
+            stroke-width: 1;
+            fill: none;
+            marker-end: url(#arr-k)
+        }
+
+        line.edge-t,
+        path.edge-t {
+            stroke: #3B6D11;
+            stroke-width: 1;
+            fill: none;
+            marker-end: url(#arr-t)
+        }
+
+        line.edge-n,
+        path.edge-n {
+            stroke: #A32D2D;
+            stroke-width: 1;
+            fill: none;
+            marker-end: url(#arr-n)
+        }
+
+        line.edge-s {
+            stroke: #b8860b;
+            stroke-width: 1.5;
+            stroke-dasharray: 5 2;
+            fill: none;
+            marker-end: url(#arr-s)
+        }
+
+        .node-g {
+            cursor: pointer
+        }
+
+        .node-g:hover rect {
+            opacity: .82
+        }
+
+        rect.box {
+            rx: 6;
+            stroke-width: 1
+        }
+
+        @media (prefers-color-scheme: dark) {
+            body {
+                background: transparent;
+                /* Keep primary text white for text outside nodes (like title, section text) */
+                --color-text-primary: #f8fafc;
+                --color-text-secondary: #cbd5e1;
+                --color-border-tertiary: #334155;
+            }
+            
+            /* Keep text inside the pastel boxes dark */
+            text.label { fill: #1e293b !important; }
+            text.sub { fill: #475569 !important; }
+            text.ref { fill: #64748b !important; }
+            text.sect { fill: #cbd5e1 !important; }
+            
+            /* Make connection lines a bit darker/clearer against the dark background */
+            line.edge, path.edge { stroke: #64748b; }
+            line.edge-m, path.edge-m { stroke: #be185d; }
+            line.edge-k, path.edge-k { stroke: #be123c; }
+            line.edge-t, path.edge-t { stroke: #4d7c0f; }
+            line.edge-n, path.edge-n { stroke: #b91c1c; }
+            line.edge-s { stroke: #b45309; }
+            
+            /* Slightly thicker boxes for contrast */
+            rect.box { stroke-width: 1.5; }
+            
+            #arr path { stroke: #64748b; }
+            #arr-m path { stroke: #be185d; }
+            #arr-k path { stroke: #be123c; }
+            #arr-t path { stroke: #4d7c0f; }
+            #arr-n path { stroke: #b91c1c; }
+            #arr-s path { stroke: #b45309; }
+        }
+    </style>
+</head>
+
+<body>
+    <h2 class="sr-only">Complete Biblical Family Tree from Adam to Jesus Christ, sourced strictly from Scripture</h2>
+    <div class="wrap">
+        <div class="legend">
+            <span style="font-size:12px;font-weight:500;color:var(--color-text-secondary)">Key:</span>
+            <span class="legend-item"><span class="dot"
+                    style="background:#EEEDFE;border:1px solid #534AB7"></span>Adam/Eve</span>
+            <span class="legend-item"><span class="dot"
+                    style="background:#E6F1FB;border:1px solid #185FA5"></span>Pre-flood
+                (Gen 5)</span>
+            <span class="legend-item"><span class="dot"
+                    style="background:#E1F5EE;border:1px solid #0F6E56"></span>Post-flood
+                (Gen 11)</span>
+            <span class="legend-item"><span class="dot"
+                    style="background:#FAEEDA;border:1px solid #854F0B"></span>Abraham's
+                line</span>
+            <span class="legend-item"><span class="dot"
+                    style="background:#FAECE7;border:1px solid #993C1D"></span>Jacob/Israel</span>
+            <span class="legend-item"><span class="dot" style="background:#EAF3DE;border:1px solid #3B6D11"></span>12
+                Tribes</span>
+            <span class="legend-item"><span class="dot" style="background:#FBEAF0;border:1px solid #993556"></span>Kings
+                (Judah)</span>
+            <span class="legend-item"><span class="dot" style="background:#FCEBEB;border:1px solid #A32D2D"></span>NT /
+                Christ's line</span>
+            <span class="legend-item"><span class="dot" style="background:#fff0f6;border:1px solid #c44b80"></span>Woman
+                /
+                mother</span>
+            <span class="legend-item"><span class="dot" style="background:#fffde7;border:2px solid #b8860b"></span>God /
+                Divine</span>
+        </div>
+
+        <svg id="tree" class="tree" viewBox="0 0 2160 4800" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5"
+                    orient="auto-start-reverse">
+                    <path d="M3 1L11 5L3 9" fill="none" stroke="#aaa" stroke-width="1.5" stroke-linecap="round"
+                        stroke-linejoin="round" />
+                </marker>
+                <marker id="arr-m" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5"
+                    orient="auto-start-reverse">
+                    <path d="M3 1L11 5L3 9" fill="none" stroke="#c44b80" stroke-width="1.5" stroke-linecap="round"
+                        stroke-linejoin="round" />
+                </marker>
+                <marker id="arr-k" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5"
+                    orient="auto-start-reverse">
+                    <path d="M3 1L11 5L3 9" fill="none" stroke="#993556" stroke-width="1.5" stroke-linecap="round"
+                        stroke-linejoin="round" />
+                </marker>
+                <marker id="arr-t" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5"
+                    orient="auto-start-reverse">
+                    <path d="M3 1L11 5L3 9" fill="none" stroke="#3B6D11" stroke-width="1.5" stroke-linecap="round"
+                        stroke-linejoin="round" />
+                </marker>
+                <marker id="arr-n" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5"
+                    orient="auto-start-reverse">
+                    <path d="M3 1L11 5L3 9" fill="none" stroke="#A32D2D" stroke-width="1.5" stroke-linecap="round"
+                        stroke-linejoin="round" />
+                </marker>
+                <marker id="arr-s" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5"
+                    orient="auto-start-reverse">
+                    <path d="M3 1L11 5L3 9" fill="none" stroke="#b8860b" stroke-width="1.5" stroke-linecap="round"
+                        stroke-linejoin="round" />
+                </marker>
+            </defs>
+
+            <!-- ═══════════════════ SECTION HEADERS ═══════════════════ -->
+            <text class="sect" x="1080" y="30">CREATION &amp; PRE-FLOOD GENEALOGY (Genesis 1–5)</text>
+            <text class="sect" x="1080" y="590">POST-FLOOD GENEALOGY (Genesis 9–11)</text>
+            <text class="sect" x="1080" y="1060">PATRIARCHS (Genesis 11–50)</text>
+            <text class="sect" x="1080" y="1680">THE 12 TRIBES OF ISRAEL (Genesis 49 / Numbers / Deuteronomy)</text>
+            <text class="sect" x="1080" y="2220">THE DAVIDIC LINE — JUDAH'S KINGS (Ruth · 1–2 Sam · 1–2 Ki · 1–2 Chr · Mt
+                1)</text>
+            <text class="sect" x="1080" y="3340">NEW TESTAMENT GENEALOGY TO JESUS CHRIST (Matthew 1 · Luke 3)</text>
+
+            <!-- ═══════════════════════════════════════
+     CREATION — GOD, ADAM, EVE
+═══════════════════════════════════════ -->
+            <!-- GOD -->
+            <g class="node-g" onclick="info('GOD (தேவன்)','Creator of all things · Gen 1:1')">
+                <rect class="box n-god" x="960" y="45" width="240" height="46" />
+                <text class="label" x="1080" y="64">GOD (தேவன்)</text>
+                <text class="ref" x="1080" y="80">Gen 1:1</text>
+            </g>
+            <!-- Adam -->
+            <g class="node-g" onclick="info('Adam (ஆதாம்)','First man, formed from dust · Gen 2:7; 5:1-5')">
+                <rect class="box n-adam" x="806" y="130" width="210" height="46" />
+                <text class="label" x="911" y="149">Adam (ஆதாம்)</text>
+                <text class="ref" x="911" y="163">Gen 2:7; 5:1</text>
+            </g>
+            <!-- Eve -->
+            <g class="node-g" onclick="info('Eve (ஏவாள்)','First woman, from Adam\'s rib · Gen 2:22; 3:20')">
+                <rect class="box n-female" x="1144" y="130" width="210" height="46" />
+                <text class="label" x="1249" y="149">Eve (ஏவாள்)</text>
+                <text class="ref" x="1249" y="163">Gen 2:22; 3:20</text>
+            </g>
+            <!-- God → Adam (creation) -->
+            <line class="edge-s" x1="1053" y1="91" x2="932" y2="130" />
+            <line class="edge-s" x1="1107" y1="91" x2="1229" y2="130" />
+
+            <!-- Adam + Eve label -->
+            <text class="sub" x="1080" y="163" style="fill:#b8860b;font-weight:500">united (Gen 2:24)</text>
+
+            <!-- Sons of Adam & Eve -->
+            <!-- Cain -->
+            <g class="node-g" onclick="info('Cain (காயீன்)','Firstborn of Adam; killed Abel · Gen 4:1-8')">
+                <rect class="box n-adam" x="263" y="240" width="190" height="46" />
+                <text class="label" x="358" y="259">Cain (காயீன்)</text>
+                <text class="ref" x="358" y="273">Gen 4:1</text>
+            </g>
+            <!-- Abel -->
+            <g class="node-g" onclick="info('Abel (ஆபேல்)','Second son; killed by Cain · Gen 4:2,8; Heb 11:4')">
+                <rect class="box n-adam" x="479" y="240" width="190" height="46" />
+                <text class="label" x="574" y="259">Abel (ஆபேல்)</text>
+                <text class="ref" x="574" y="273">Gen 4:2</text>
+            </g>
+            <!-- Seth -->
+            <g class="node-g" onclick="info('Seth (சேத்)','Third son; given in place of Abel · Gen 4:25; 5:3')">
+                <rect class="box n-pre" x="911" y="240" width="190" height="46" />
+                <text class="label" x="1006" y="259">Seth (சேத்)</text>
+                <text class="ref" x="1006" y="273">Gen 4:25; 5:3</text>
+            </g>
+            <!-- Other sons/daughters -->
+            <g class="node-g" onclick="info('Other children','Sons &amp; daughters · Gen 5:4')">
+                <rect class="box n-adam" x="1211" y="240" width="210" height="46" rx="45" stroke-dasharray="4 2" />
+                <text class="label" x="1316" y="259">Other sons (மற்ற குமாரர்கள்)</text>
+                <text class="ref" x="1316" y="273">&amp; daughters · Gen 5:4</text>
+            </g>
+
+            <!-- Adam/Eve → children -->
+            <path class="edge" d="M911 176 L911 200 L358 200 L358 240" />
+            <path class="edge" d="M911 176 L911 200 L574 200 L574 240" />
+            <path class="edge" d="M1080 176 L1080 215 L1006 215 L1006 240" />
+            <path class="edge" d="M1249 176 L1249 215 L1316 215 L1316 240" />
+
+            <!-- CAIN's line (Gen 4) -->
+            <text class="sect" x="358" y="308" style="font-size:9px">Cain's line (Gen 4)</text>
+            <!-- wife of Cain -->
+            <g class="node-g" onclick="info('Wife of Cain','unnamed · Gen 4:17')">
+                <rect class="box n-female" x="167" y="330" width="180" height="36" stroke-dasharray="3 2" />
+                <text class="label" x="257" y="349">Wife (unnamed)</text>
+                <text class="ref" x="257" y="360" style="font-size:7.5px">Gen 4:17</text>
+            </g>
+            <line class="edge" x1="358" y1="286" x2="358" y2="330" />
+            <!-- Enoch (Cain's son) -->
+            <g class="node-g"
+                onclick="info('Enoch (ஏனோக்கு)','City named after him · Gen 4:17 — NOT the same as Enoch son of Jared')">
+                <rect class="box n-adam" x="263" y="390" width="190" height="44" />
+                <text class="label" x="358" y="408">Enoch (ஏனோக்கு)</text>
+                <text class="sub" x="358" y="421">(son of Cain)</text>
+                <text class="ref" x="358" y="430" style="font-size:7.5px">Gen 4:17</text>
+            </g>
+            <line class="edge" x1="358" y1="366" x2="358" y2="390" />
+            <!-- Irad -->
+            <g class="node-g" onclick="info('Irad (ஈராத்)','Son of Enoch (Cain\'s) · Gen 4:18')">
+                <rect class="box n-adam" x="263" y="456" width="190" height="38" />
+                <text class="label" x="358" y="472">Irad (ஈராத்)</text>
+                <text class="ref" x="358" y="484">Gen 4:18</text>
+            </g>
+            <line class="edge" x1="358" y1="434" x2="358" y2="456" />
+            <!-- Mehujael -->
+            <g class="node-g" onclick="info('Mehujael (மெகுயவேல்)','Son of Irad · Gen 4:18')">
+                <rect class="box n-adam" x="263" y="516" width="190" height="38" />
+                <text class="label" x="358" y="532">Mehujael (மெகுயவேல்)</text>
+                <text class="ref" x="358" y="544">Gen 4:18</text>
+            </g>
+            <line class="edge" x1="358" y1="494" x2="358" y2="516" />
+            <!-- Methushael -->
+            <g class="node-g" onclick="info('Methushael (மெத்தூசவேல்)','Son of Mehujael · Gen 4:18')">
+                <rect class="box n-adam" x="263" y="572" width="190" height="38" />
+                <text class="label" x="358" y="588">Methushael (மெத்தூசவேல்)</text>
+                <text class="ref" x="358" y="600">Gen 4:18</text>
+            </g>
+            <line class="edge" x1="358" y1="554" x2="358" y2="572" />
+            <!-- Lamech (Cain's) -->
+            <g class="node-g"
+                onclick="info('Lamech (Cain\'s)','Bigamist; first recorded murder-boast · Gen 4:19-24 — NOT Noah\'s father')">
+                <rect class="box n-adam" x="168" y="630" width="190" height="44" />
+                <text class="label" x="263" y="649">Lamech (லாமேக்கு)</text>
+                <text class="sub" x="263" y="661">(Cain's line)</text>
+                <text class="ref" x="263" y="669" style="font-size:7.5px">Gen 4:19</text>
+            </g>
+            <line class="edge" x1="358" y1="610" x2="358" y2="650 " />
+            <path class="edge" d="M358 650 L263 650" />
+            <!-- Adah & Zillah -->
+            <g class="node-g" onclick="info('Adah (ஆதாள்)','Wife of Lamech (Cain\'s) · Gen 4:19')">
+                <rect class="box n-female" x="25" y="630" width="145" height="38" />
+                <text class="label" x="97" y="646">Adah (ஆதாள்)</text>
+                <text class="ref" x="97" y="659">Gen 4:19</text>
+            </g>
+            <g class="node-g" onclick="info('Zillah (சில்லாள்)','Wife of Lamech (Cain\'s) · Gen 4:19')">
+                <rect class="box n-female" x="25" y="690" width="145" height="38" />
+                <text class="label" x="97" y="706">Zillah (சில்லாள்)</text>
+                <text class="ref" x="97" y="719">Gen 4:19</text>
+            </g>
+            <!-- Children of Lamech (Cain's) -->
+            <g class="node-g" onclick="info('Jabal (யாபால்)','Father of tent-dwellers, livestock · Gen 4:20')">
+                <rect class="box n-adam" x="26" y="750" width="150" height="38" />
+                <text class="label" x="101" y="767">Jabal (யாபால்)</text>
+                <text class="ref" x="101" y="779">Gen 4:20</text>
+            </g>
+            <g class="node-g" onclick="info('Jubal (யூபால்)','Father of harp &amp; flute · Gen 4:21')">
+                <rect class="box n-adam" x="175" y="750" width="150" height="38" />
+                <text class="label" x="250" y="767">Jubal (யூபால்)</text>
+                <text class="ref" x="250" y="779">Gen 4:21</text>
+            </g>
+            <g class="node-g" onclick="info('Tubal-Cain (தூபல்காயீன்)','Forger of bronze &amp; iron · Gen 4:22')">
+                <rect class="box n-adam" x="327" y="750" width="170" height="38" />
+                <text class="label" x="412" y="767">Tubal-Cain (தூபல்காயீன்)</text>
+                <text class="ref" x="412" y="779">Gen 4:22</text>
+            </g>
+            <g class="node-g" onclick="info('Naamah (நாமாள்)','Daughter of Lamech &amp; Zillah · Gen 4:22')">
+                <rect class="box n-female" x="494" y="750" width="160" height="38" />
+                <text class="label" x="574" y="767">Naamah (நாமாள்)</text>
+                <text class="ref" x="574" y="779">Gen 4:22</text>
+            </g>
+            <line class="edge" x1="263" y1="674" x2="101" y2="750" />
+            <line class="edge" x1="263" y1="674" x2="250" y2="750" />
+            <line class="edge" x1="263" y1="674" x2="412" y2="750" />
+            <line class="edge" x1="263" y1="674" x2="574" y2="750" />
+
+            <!-- ═══════════════════════════════════════
+     SETH LINE (Gen 5) — main redemptive line
+═══════════════════════════════════════ -->
+            <text class="sect" x="1006" y="310" style="font-size:9px;fill:#185FA5">Seth's line — the righteous line (Gen
+                5)</text>
+            <!-- Enosh -->
+            <g class="node-g" onclick="info('Enosh (ஏனோஸ்)','Son of Seth; men began to call on the LORD · Gen 4:26; 5:6')">
+                <rect class="box n-pre" x="911" y="330" width="190" height="44" />
+                <text class="label" x="1006" y="349">Enosh (ஏனோஸ்)</text>
+                <text class="ref" x="1006" y="365">Gen 4:26; 5:6</text>
+            </g>
+            <line class="edge" x1="1006" y1="286" x2="1006" y2="330" />
+            <!-- Kenan -->
+            <g class="node-g" onclick="info('Kenan (கேனான்)','Son of Enosh · Gen 5:9')">
+                <rect class="box n-pre" x="911" y="396" width="190" height="38" />
+                <text class="label" x="1006" y="413">Kenan (கேனான்)</text>
+                <text class="ref" x="1006" y="425">Gen 5:9</text>
+            </g>
+            <line class="edge" x1="1006" y1="374" x2="1006" y2="396" />
+            <!-- Mahalalel -->
+            <g class="node-g" onclick="info('Mahalalel (மகலாலெயேல்)','Son of Kenan · Gen 5:12')">
+                <rect class="box n-pre" x="911" y="456" width="190" height="38" />
+                <text class="label" x="1006" y="473">Mahalalel (மகலாலெயேல்)</text>
+                <text class="ref" x="1006" y="485">Gen 5:12</text>
+            </g>
+            <line class="edge" x1="1006" y1="434" x2="1006" y2="456" />
+            <!-- Jared -->
+            <g class="node-g" onclick="info('Jared (யாரேத்)','Son of Mahalalel · Gen 5:15')">
+                <rect class="box n-pre" x="911" y="516" width="190" height="38" />
+                <text class="label" x="1006" y="533">Jared (யாரேத்)</text>
+                <text class="ref" x="1006" y="545">Gen 5:15</text>
+            </g>
+            <line class="edge" x1="1006" y1="494" x2="1006" y2="516" />
+            <!-- ENOCH (walked with God) -->
+            <g class="node-g"
+                onclick="info('Enoch (ஏனோக்கு)','Walked with God; taken by God; did not see death · Gen 5:21-24; Heb 11:5; Jude 14')">
+                <rect class="box n-special" x="901" y="576" width="210" height="44" />
+                <text class="label" x="1006" y="595">Enoch (ஏனோக்கு)</text>
+                <text class="sub" x="1006" y="608">walked with God · Gen 5:22</text>
+            </g>
+            <line class="edge" x1="1006" y1="554" x2="1006" y2="576" />
+            <!-- Methuselah -->
+            <g class="node-g" onclick="info('Methuselah (மெத்தூசலா)','Son of Enoch; oldest man (969 yrs) · Gen 5:25-27')">
+                <rect class="box n-pre" x="911" y="642" width="190" height="38" />
+                <text class="label" x="1006" y="659">Methuselah (மெத்தூசலா)</text>
+                <text class="ref" x="1006" y="671">Gen 5:25 · 969 yrs</text>
+            </g>
+            <line class="edge" x1="1006" y1="620" x2="1006" y2="642" />
+            <!-- Lamech (Noah's father) -->
+            <g class="node-g"
+                onclick="info('Lamech (Seth\'s line)','Father of Noah; prophesied comfort · Gen 5:28-31 — DIFFERENT from Cain\'s Lamech')">
+                <rect class="box n-pre" x="911" y="702" width="190" height="44" />
+                <text class="label" x="1006" y="721">Lamech (லாமேக்கு)</text>
+                <text class="sub" x="1006" y="734">(Seth's line) · Gen 5:28</text>
+            </g>
+            <line class="edge" x1="1006" y1="680" x2="1006" y2="702" />
+
+            <!-- ═══════════════════════════════════════
+     NOAH — THE FLOOD
+═══════════════════════════════════════ -->
+            <!-- NOAH -->
+            <g class="node-g"
+                onclick="info('Noah (நோவா)','Found grace; built the ark; Gen 5:29; 6:8-9; 7:1; 9:28-29 · lived 950 yrs')">
+                <rect class="box n-pre" x="901" y="768" width="210" height="46" style="stroke:#185FA5;stroke-width:2" />
+                <text class="label" x="1006" y="787">Noah (நோவா)</text>
+                <text class="ref" x="1006" y="801">Gen 5:29; 6:8 · 950 yrs</text>
+            </g>
+            <line class="edge" x1="1006" y1="746" x2="1006" y2="768" />
+            <!-- Wife of Noah -->
+            <g class="node-g" onclick="info('Wife of Noah','Unnamed · Gen 7:7')">
+                <rect class="box n-female" x="1125" y="768" width="180" height="38" stroke-dasharray="3 2" />
+                <text class="label" x="1215" y="784">Wife (unnamed)</text>
+                <text class="ref" x="1215" y="797">Gen 7:7</text>
+            </g>
+
+            <!-- SONS OF NOAH -->
+            <g class="node-g"
+                onclick="info('Shem (சேம்)','Firstborn (order); ancestor of Semitic peoples · Gen 5:32; 10:21-31; 11:10')">
+                <rect class="box n-post" x="776" y="860" width="190" height="44" />
+                <text class="label" x="871" y="879">Shem (சேம்)</text>
+                <text class="ref" x="871" y="893">Gen 5:32; 10:21</text>
+            </g>
+            <g class="node-g" onclick="info('Ham (காம்)','Second son; father of Canaan; Gen 5:32; 9:22; 10:6')">
+                <rect class="box n-post" x="978" y="860" width="190" height="44" />
+                <text class="label" x="1073" y="879">Ham (காம்)</text>
+                <text class="ref" x="1073" y="893">Gen 5:32; 10:6</text>
+            </g>
+            <g class="node-g" onclick="info('Japheth (யாப்பேத்)','Third son (youngest); Gen 5:32; 10:2-5')">
+                <rect class="box n-post" x="1181" y="860" width="190" height="44" />
+                <text class="label" x="1276" y="879">Japheth (யாப்பேத்)</text>
+                <text class="ref" x="1276" y="893">Gen 5:32; 10:2</text>
+            </g>
+            <path class="edge" d="M1006 814 L1006 840 L871 840 L871 860" />
+            <path class="edge" d="M1006 814 L1006 840 L1073 840 L1073 860" />
+            <path class="edge" d="M1215 806 L1215 840 L1276 840 L1276 860" />
+
+            <!-- HAM's notable sons (Gen 10:6) -->
+            <text class="sect" x="1073" y="924" style="font-size:8.5px">Ham's sons (Gen 10:6)</text>
+            <g class="node-g" onclick="info('Cush (கூஷ்)','Son of Ham · Gen 10:6')">
+                <rect class="box n-post" x="835" y="940" width="140" height="36" />
+                <text class="label" x="905" y="956">Cush (கூஷ்)</text>
+                <text class="ref" x="905" y="966">Gen 10:6</text>
+            </g>
+            <g class="node-g" onclick="info('Mizraim (மிஸ்ராயீம்)','Son of Ham; father of Egypt · Gen 10:6')">
+                <rect class="box n-post" x="957" y="940" width="148" height="36" />
+                <text class="label" x="1031" y="956">Mizraim (மிஸ்ராயீம்)</text>
+                <text class="ref" x="1031" y="966">Gen 10:6</text>
+            </g>
+            <g class="node-g" onclick="info('Put (பூத்)','Son of Ham · Gen 10:6')">
+                <rect class="box n-post" x="1087" y="940" width="135" height="36" />
+                <text class="label" x="1154" y="956">Put (பூத்)</text>
+                <text class="ref" x="1154" y="966">Gen 10:6</text>
+            </g>
+            <g class="node-g" onclick="info('Canaan (கானான்)','Son of Ham; cursed · Gen 9:25; 10:6')">
+                <rect class="box n-post" x="1205" y="940" width="150" height="36" />
+                <text class="label" x="1280" y="956">Canaan (கானான்)</text>
+                <text class="ref" x="1280" y="966">Gen 9:25; 10:6</text>
+            </g>
+            <line class="edge" x1="1073" y1="904" x2="905" y2="940" />
+            <line class="edge" x1="1073" y1="904" x2="1031" y2="940" />
+            <line class="edge" x1="1073" y1="904" x2="1154" y2="940" />
+            <line class="edge" x1="1073" y1="904" x2="1280" y2="940" />
+
+            <!-- JAPHETH sons (Gen 10:2) -->
+            <text class="sect" x="1620" y="924" style="font-size:8.5px">Japheth's sons (Gen 10:2)</text>
+            <g class="node-g" onclick="info('Gomer (கோமேர்)','Son of Japheth · Gen 10:2')">
+                <rect class="box n-post" x="1374" y="940" width="135" height="36" /><text class="label" x="1442"
+                    y="956">Gomer (கோமேர்)</text><text class="ref" x="1442" y="966">Gen 10:2</text>
+            </g>
+            <g class="node-g" onclick="info('Magog (மாகோகு)','Son of Japheth · Gen 10:2; Ezek 38:2')">
+                <rect class="box n-post" x="1488" y="940" width="135" height="36" /><text class="label" x="1555"
+                    y="956">Magog (மாகோகு)</text><text class="ref" x="1555" y="966">Gen 10:2</text>
+            </g>
+            <g class="node-g" onclick="info('Madai (மாதாய்)','Son of Japheth (Medes) · Gen 10:2')">
+                <rect class="box n-post" x="1603" y="940" width="135" height="36" /><text class="label" x="1670"
+                    y="956">Madai (மாதாய்)</text><text class="ref" x="1670" y="966">Gen 10:2</text>
+            </g>
+            <g class="node-g" onclick="info('Javan (யாவான்)','Son of Japheth (Greece) · Gen 10:2')">
+                <rect class="box n-post" x="1718" y="940" width="135" height="36" /><text class="label" x="1785"
+                    y="956">Javan (யாவான்)</text><text class="ref" x="1785" y="966">Gen 10:2</text>
+            </g>
+            <g class="node-g" onclick="info('Tubal (தூபால்)','Son of Japheth · Gen 10:2')">
+                <rect class="box n-post" x="1833" y="940" width="135" height="36" /><text class="label" x="1899"
+                    y="956">Tubal (தூபால்)</text><text class="ref" x="1899" y="966">Gen 10:2</text>
+            </g>
+            <g class="node-g" onclick="info('Meshech (மேசேக்)','Son of Japheth · Gen 10:2')">
+                <rect class="box n-post" x="1949" y="940" width="145" height="36" /><text class="label" x="2021"
+                    y="956">Meshech (மேசேக்)</text><text class="ref" x="2021" y="966">Gen 10:2</text>
+            </g>
+            <line class="edge" x1="1276" y1="904" x2="1442" y2="940" />
+            <line class="edge" x1="1276" y1="904" x2="1555" y2="940" />
+            <line class="edge" x1="1276" y1="904" x2="1670" y2="940" />
+            <line class="edge" x1="1276" y1="904" x2="1785" y2="940" />
+            <line class="edge" x1="1276" y1="904" x2="1899" y2="940" />
+            <line class="edge" x1="1276" y1="904" x2="2021" y2="940" />
+
+            <!-- ═══════════════════════════════════════
+     SHEM LINE → ABRAHAM (Gen 11)
+═══════════════════════════════════════ -->
+            <text class="sect" x="608" y="1020" style="font-size:9px;fill:#0F6E56">Shem's line to Abraham (Gen
+                11:10-26)</text>
+
+            <!-- Arphaxad -->
+            <g class="node-g" onclick="info('Arphaxad (அர்ப்பகசாத்)','Son of Shem; 2 yrs after flood · Gen 11:10')">
+                <rect class="box n-post" x="491" y="1040" width="180" height="40" />
+                <text class="label" x="581" y="1058">Arphaxad (அர்ப்பகசாத்)</text>
+                <text class="ref" x="581" y="1070">Gen 11:10</text>
+            </g>
+            <path class="edge" d="M871 904 L871 920 L581 920 L581 1040" />
+
+            <!-- Shelah (Cainan noted in Lk 3 between Arphaxad & Shelah — Luke 3:36) -->
+            <g class="node-g"
+                onclick="info('Cainan (கேனான்)','Between Arphaxad &amp; Shelah per Luke 3:36 — not in MT Gen 11, but in LXX and Luke\'s genealogy')">
+                <rect class="box n-post" x="491" y="1102" width="180" height="40" stroke-dasharray="4 2" />
+                <text class="label" x="581" y="1120">Cainan (கேனான்)</text>
+                <text class="ref" x="581" y="1132">Luke 3:36 (LXX)</text>
+            </g>
+            <line class="edge" x1="581" y1="1080" x2="581" y2="1102" />
+            <g class="node-g" onclick="info('Shelah (சாலா)','Son of Arphaxad (or Cainan) · Gen 11:12; Lk 3:35')">
+                <rect class="box n-post" x="491" y="1163" width="180" height="38" />
+                <text class="label" x="581" y="1180">Shelah (சாலா)</text>
+                <text class="ref" x="581" y="1192">Gen 11:12; Lk 3:35</text>
+            </g>
+            <line class="edge" x1="581" y1="1142" x2="581" y2="1163" />
+            <g class="node-g" onclick="info('Eber (ஏபேர்)','Son of Shelah; ancestor of Hebrews · Gen 11:14')">
+                <rect class="box n-post" x="491" y="1223" width="180" height="38" />
+                <text class="label" x="581" y="1240">Eber (ஏபேர்)</text>
+                <text class="ref" x="581" y="1252">Gen 11:14</text>
+            </g>
+            <line class="edge" x1="581" y1="1201" x2="581" y2="1223" />
+            <g class="node-g" onclick="info('Peleg (பேலேகு)','Son of Eber; earth divided in his days · Gen 11:16; 10:25')">
+                <rect class="box n-post" x="491" y="1283" width="180" height="38" />
+                <text class="label" x="581" y="1300">Peleg (பேலேகு)</text>
+                <text class="ref" x="581" y="1312">Gen 11:16; 10:25</text>
+            </g>
+            <line class="edge" x1="581" y1="1261" x2="581" y2="1283" />
+            <!-- Joktan (Eber's other son) -->
+            <g class="node-g" onclick="info('Joktan (யொக்தான்)','Brother of Peleg; Gen 10:25-29')">
+                <rect class="box n-post" x="678" y="1223" width="170" height="38" stroke-dasharray="3 2" />
+                <text class="label" x="763" y="1240">Joktan (யொக்தான்)</text>
+                <text class="ref" x="763" y="1252">Gen 10:25; 11:14</text>
+            </g>
+            <line class="edge" x1="581" y1="1261" x2="763" y2="1223" />
+            <g class="node-g" onclick="info('Reu (ரெகூ)','Son of Peleg · Gen 11:18')">
+                <rect class="box n-post" x="491" y="1343" width="180" height="38" />
+                <text class="label" x="581" y="1360">Reu (ரெகூ)</text>
+                <text class="ref" x="581" y="1372">Gen 11:18</text>
+            </g>
+            <line class="edge" x1="581" y1="1321" x2="581" y2="1343" />
+            <g class="node-g" onclick="info('Serug (செரூக்)','Son of Reu · Gen 11:20')">
+                <rect class="box n-post" x="491" y="1403" width="180" height="38" />
+                <text class="label" x="581" y="1420">Serug (செரூக்)</text>
+                <text class="ref" x="581" y="1432">Gen 11:20</text>
+            </g>
+            <line class="edge" x1="581" y1="1381" x2="581" y2="1403" />
+            <g class="node-g" onclick="info('Nahor (1)','Son of Serug · Gen 11:22 — NOT Abraham\'s brother')">
+                <rect class="box n-post" x="491" y="1463" width="180" height="38" />
+                <text class="label" x="581" y="1480">Nahor (I)</text>
+                <text class="ref" x="581" y="1492">Gen 11:22</text>
+            </g>
+            <line class="edge" x1="581" y1="1441" x2="581" y2="1463" />
+            <!-- Terah -->
+            <g class="node-g" onclick="info('Terah (தேராகு)','Father of Abram/Nahor/Haran; died in Haran · Gen 11:24-32')">
+                <rect class="box n-abr" x="481" y="1523" width="200" height="44" />
+                <text class="label" x="581" y="1542">Terah (தேராகு)</text>
+                <text class="ref" x="581" y="1558">Gen 11:24-32</text>
+            </g>
+            <line class="edge" x1="581" y1="1501" x2="581" y2="1523" />
+
+            <!-- Terah's three sons -->
+            <!-- ABRAM / ABRAHAM -->
+            <g class="node-g"
+                onclick="info('Abraham (ஆபிரகாம்)','Father of faith; Gen 11:26; 12:1-3; 17:5 — name changed; 175 yrs · Gal 3:16')">
+                <rect class="box n-abr" x="417" y="1600" width="220" height="46"
+                    style="stroke:#854F0B;stroke-width:2" />
+                <text class="label" x="527" y="1619">Abraham (ஆபிரகாம்)</text>
+                <text class="ref" x="527" y="1633">Gen 17:5; 12:1 · 175 yrs</text>
+            </g>
+            <!-- Nahor (2) brother of Abraham -->
+            <g class="node-g"
+                onclick="info('Nahor (II)','Brother of Abraham; grandfather of Rebekah · Gen 11:26; 22:20-23')">
+                <rect class="box n-abr" x="668" y="1600" width="190" height="46" />
+                <text class="label" x="763" y="1619">Nahor (II)</text>
+                <text class="ref" x="763" y="1633">Gen 11:26; 22:20</text>
+            </g>
+            <!-- Haran -->
+            <g class="node-g" onclick="info('Haran (ஆரான்)','Brother of Abraham; died before Terah · Gen 11:26-28')">
+                <rect class="box n-abr" x="870" y="1600" width="190" height="46" />
+                <text class="label" x="965" y="1619">Haran (ஆரான்)</text>
+                <text class="ref" x="965" y="1633">Gen 11:26-28</text>
+            </g>
+            <path class="edge" d="M581 1567 L581 1580 L527 1580 L527 1600" />
+            <path class="edge" d="M581 1567 L581 1580 L763 1580 L763 1600" />
+            <path class="edge" d="M581 1567 L581 1580 L965 1580 L965 1600" />
+
+            <!-- HARAN's children -->
+            <g class="node-g" onclick="info('Lot (லோத்து)','Son of Haran; nephew of Abraham · Gen 11:27; 12:5; 19')">
+                <rect class="box n-abr" x="853" y="1668" width="170" height="38" />
+                <text class="label" x="938" y="1685">Lot (லோத்து)</text>
+                <text class="ref" x="938" y="1697">Gen 11:27; 12:5</text>
+            </g>
+            <g class="node-g" onclick="info('Milcah (மில்காள்)','Daughter of Haran; wife of Nahor II · Gen 11:29; 22:20')">
+                <rect class="box n-female" x="1015" y="1668" width="170" height="38" />
+                <text class="label" x="1100" y="1685">Milcah (மில்காள்)</text>
+                <text class="ref" x="1100" y="1697">Gen 11:29; 22:20</text>
+            </g>
+            <g class="node-g" onclick="info('Iscah (இஸ்காள்)','Daughter of Haran · Gen 11:29')">
+                <rect class="box n-female" x="1177" y="1668" width="170" height="38" />
+                <text class="label" x="1262" y="1685">Iscah (இஸ்காள்)</text>
+                <text class="ref" x="1262" y="1697">Gen 11:29</text>
+            </g>
+            <line class="edge" x1="965" y1="1646" x2="938" y2="1668" />
+            <line class="edge" x1="965" y1="1646" x2="1100" y2="1668" />
+            <line class="edge" x1="965" y1="1646" x2="1262" y2="1668" />
+
+            <!-- NAHOR II children (through Milcah) → leads to Rebekah -->
+            <text class="sect" x="763" y="1734" style="font-size:8.5px">Nahor II + Milcah (Gen 22:20-22)</text>
+            <g class="node-g"
+                onclick="info('Bethuel (பெத்துவேல்)','Son of Nahor II &amp; Milcah; father of Rebekah · Gen 22:22-23')">
+                <rect class="box n-abr" x="666" y="1752" width="180" height="38" />
+                <text class="label" x="756" y="1769">Bethuel (பெத்துவேல்)</text>
+                <text class="ref" x="756" y="1781">Gen 22:22-23</text>
+            </g>
+            <line class="edge" x1="763" y1="1646" x2="763" y2="1735" />
+            <line class="edge" x1="763" y1="1735" x2="756" y2="1752" />
+            <!-- Laban & Rebekah -->
+            <g class="node-g" onclick="info('Laban (லாபான்)','Son of Bethuel; father of Leah &amp; Rachel · Gen 24:29; 29:16')">
+                <rect class="box n-abr" x="636" y="1812" width="160" height="38" />
+                <text class="label" x="716" y="1829">Laban (லாபான்)</text>
+                <text class="ref" x="716" y="1841">Gen 24:29</text>
+            </g>
+            <g class="node-g" onclick="info('Rebekah (ரெபெக்காள்)','Daughter of Bethuel; wife of Isaac · Gen 22:23; 24:15')">
+                <rect class="box n-female" x="800" y="1812" width="175" height="38" />
+                <text class="label" x="887" y="1829">Rebekah (ரெபெக்காள்)</text>
+                <text class="ref" x="887" y="1841">Gen 22:23; 24:15</text>
+            </g>
+            <line class="edge" x1="756" y1="1790" x2="716" y2="1812" />
+            <line class="edge" x1="756" y1="1790" x2="887" y2="1812" />
+
+            <!-- ═══════════════════════════════════════
+     ABRAHAM's WIVES & CHILDREN
+═══════════════════════════════════════ -->
+            <!-- Sarah -->
+            <g class="node-g"
+                onclick="info('Sarah (Sarai)','Wife of Abraham; mother of Isaac; name changed · Gen 11:29; 17:15; 21:3 · 127 yrs')">
+                <rect class="box n-female" x="197" y="1600" width="200" height="46" />
+                <text class="label" x="297" y="1619">Sarah (சாராள்)</text>
+                <text class="ref" x="297" y="1633">Gen 17:15; 21:3 · 127 yrs</text>
+            </g>
+            <!-- Hagar -->
+            <g class="node-g" onclick="info('Hagar (ஆகார்)','Egyptian maidservant of Sarah; mother of Ishmael · Gen 16:1-4')">
+                <rect class="box n-female" x="59" y="1680" width="180" height="38" stroke-dasharray="3 2" />
+                <text class="label" x="149" y="1697">Hagar (ஆகார்)</text>
+                <text class="ref" x="149" y="1709">Gen 16:1-4</text>
+            </g>
+            <!-- Keturah -->
+            <g class="node-g"
+                onclick="info('Keturah (கேத்தூராள்)','Abraham\'s wife after Sarah; Gen 25:1-4 · 1 Chr 1:32 also calls her concubine')">
+                <rect class="box n-female" x="59" y="1740" width="180" height="38" stroke-dasharray="3 2" />
+                <text class="label" x="149" y="1757">Keturah (கேத்தூராள்)</text>
+                <text class="ref" x="149" y="1769">Gen 25:1-4</text>
+            </g>
+
+            <!-- ISHMAEL -->
+            <g class="node-g"
+                onclick="info('Ishmael (இஸ்மவேல்)','Son of Abraham &amp; Hagar; 12 princes · Gen 16:15; 17:20; 25:12-18')">
+                <rect class="box n-abr" x="155" y="1800" width="190" height="44" />
+                <text class="label" x="250" y="1819">Ishmael (இஸ்மவேல்)</text>
+                <text class="ref" x="250" y="1833">Gen 16:15; 17:20</text>
+            </g>
+            <path class="edge-m" d="M297 1646 L297 1660 L250 1660 L250 1680" />
+            <path class="edge-m" d="M149 1718 L149 1780 L250 1780 L250 1800" />
+            <text class="sub" x="209" y="1793" style="font-size:7.5px">by Hagar</text>
+
+            <!-- Keturah's sons -->
+            <g class="node-g" onclick="info('Zimran (சிம்ரான்)','Son of Abraham &amp; Keturah · Gen 25:2')">
+                <rect class="box n-abr" x="25" y="1870" width="140" height="36" /><text class="label" x="95"
+                    y="1886">Zimran (சிம்ரான்)</text><text class="ref" x="95" y="1896">Gen 25:2</text>
+            </g>
+            <g class="node-g" onclick="info('Jokshan (யொக்ஷான்)','Son of Abraham &amp; Keturah · Gen 25:2')">
+                <rect class="box n-abr" x="146" y="1870" width="140" height="36" /><text class="label" x="216"
+                    y="1886">Jokshan (யொக்ஷான்)</text><text class="ref" x="216" y="1896">Gen 25:2</text>
+            </g>
+            <g class="node-g" onclick="info('Medan (மேதான்)','Son of Abraham &amp; Keturah · Gen 25:2')">
+                <rect class="box n-abr" x="267" y="1870" width="135" height="36" /><text class="label" x="333"
+                    y="1886">Medan (மேதான்)</text><text class="ref" x="333" y="1896">Gen 25:2</text>
+            </g>
+            <g class="node-g" onclick="info('Midian (மீதியான்)','Son of Abraham &amp; Keturah; Midianites · Gen 25:2')">
+                <rect class="box n-abr" x="380" y="1870" width="140" height="36" /><text class="label" x="450"
+                    y="1886">Midian (மீதியான்)</text><text class="ref" x="450" y="1896">Gen 25:2</text>
+            </g>
+            <g class="node-g" onclick="info('Ishbak (இஸ்பாக்)','Son of Abraham &amp; Keturah · Gen 25:2')">
+                <rect class="box n-abr" x="497" y="1870" width="135" height="36" /><text class="label" x="564"
+                    y="1886">Ishbak (இஸ்பாக்)</text><text class="ref" x="564" y="1896">Gen 25:2</text>
+            </g>
+            <g class="node-g" onclick="info('Shuah (சூவாகு)','Son of Abraham &amp; Keturah · Gen 25:2')">
+                <rect class="box n-abr" x="610" y="1870" width="135" height="36" /><text class="label" x="676"
+                    y="1886">Shuah (சூவாகு)</text><text class="ref" x="676" y="1896">Gen 25:2</text>
+            </g>
+            <path class="edge" d="M527 1646 L527 1855 L95 1855 L95 1870" />
+            <path class="edge" d="M527 1646 L527 1855 L216 1855 L216 1870" />
+            <path class="edge" d="M527 1646 L527 1855 L333 1855 L333 1870" />
+            <path class="edge" d="M527 1646 L527 1855 L450 1855 L450 1870" />
+            <path class="edge" d="M527 1646 L527 1855 L564 1855 L564 1870" />
+            <path class="edge" d="M527 1646 L527 1855 L676 1855 L676 1870" />
+            <text class="sub" x="365" y="1848" style="font-size:7.5px;fill:#854F0B">by Keturah (Gen 25:1-4)</text>
+
+            <!-- ═══════════════════════════════════════
+     ISAAC
+═══════════════════════════════════════ -->
+            <g class="node-g"
+                onclick="info('Isaac (ஈசாக்கு)','Son of promise; Abraham &amp; Sarah · Gen 21:3; 25:26; 35:28 · 180 yrs')">
+                <rect class="box n-abr" x="410" y="1668" width="220" height="46"
+                    style="stroke:#854F0B;stroke-width:2" />
+                <text class="label" x="520" y="1687">Isaac (ஈசாக்கு)</text>
+                <text class="ref" x="520" y="1701">Gen 21:3; 25:11 · 180 yrs</text>
+            </g>
+            <path class="edge" d="M527 1646 L527 1668" />
+
+            <!-- Isaac + Rebekah -->
+            <text class="sub" x="709" y="1861" style="font-size:8px;fill:#c44b80">Rebekah → Isaac (Gen 24:67)</text>
+            <line class="edge-m" x1="887" y1="1850" x2="887" y2="1870" />
+            <path class="edge-m" d="M887 1870 L520 1870 L520 1860" />
+
+            <!-- Esau & Jacob -->
+            <g class="node-g"
+                onclick="info('Esau (ஏசா)','Twin son of Isaac &amp; Rebekah; birthright sold; father of Edomites · Gen 25:25-34; 36')">
+                <rect class="box n-abr" x="344" y="1930" width="190" height="44" />
+                <text class="label" x="439" y="1949">Esau (ஏசா)</text>
+                <text class="ref" x="439" y="1963">Gen 25:25; 36:1</text>
+            </g>
+            <g class="node-g"
+                onclick="info('Jacob / Israel (யாக்கோபு / இஸ்ரவேல்)','Twin; bought birthright; name changed to Israel · Gen 25:26; 32:28; 49 · 147 yrs')">
+                <rect class="box n-jacob" x="565" y="1930" width="220" height="46"
+                    style="stroke:#993C1D;stroke-width:2" />
+                <text class="label" x="675" y="1949">Jacob / Israel (யாக்கோபு / இஸ்ரவேல்)</text>
+                <text class="ref" x="675" y="1963">Gen 32:28 · 147 yrs</text>
+            </g>
+            <path class="edge" d="M520 1714 L520 1910 L439 1910 L439 1930" />
+            <path class="edge" d="M520 1714 L520 1910 L675 1910 L675 1930" />
+
+            <!-- ESAU's notable line -->
+            <text class="sect" x="351" y="2000" style="font-size:8px">Esau = Edom (Gen 36:1) · Kings of Edom in Gen
+                36:31-39</text>
+
+            <!-- ═══════════════════════════════════════
+     JACOB'S WIVES & THE 12 TRIBES
+═══════════════════════════════════════ -->
+            <!-- 4 wives -->
+            <g class="node-g"
+                onclick="info('Leah (லேயாள்)','First wife of Jacob (Laban\'s daughter); mother of 6 sons + Dinah · Gen 29:16,23')">
+                <rect class="box n-female" x="503" y="2020" width="175" height="38" />
+                <text class="label" x="590" y="2037">Leah (லேயாள்)</text>
+                <text class="ref" x="590" y="2049">Gen 29:16,23</text>
+            </g>
+            <g class="node-g"
+                onclick="info('Rachel (ராகேல்)','Second wife of Jacob; mother of Joseph &amp; Benjamin · Gen 29:28; 30:22-24')">
+                <rect class="box n-female" x="692" y="2020" width="175" height="38" />
+                <text class="label" x="779" y="2037">Rachel (ராகேல்)</text>
+                <text class="ref" x="779" y="2049">Gen 29:28; 30:22</text>
+            </g>
+            <g class="node-g"
+                onclick="info('Bilhah (பில்காள்)','Rachel\'s maidservant; mother of Dan &amp; Naphtali · Gen 30:3-8')">
+                <rect class="box n-female" x="878" y="2020" width="175" height="38" stroke-dasharray="3 2" />
+                <text class="label" x="965" y="2037">Bilhah (பில்காள்)</text>
+                <text class="ref" x="965" y="2049">Gen 30:3-8</text>
+            </g>
+            <g class="node-g" onclick="info('Zilpah (சில்பாள்)','Leah\'s maidservant; mother of Gad &amp; Asher · Gen 30:9-13')">
+                <rect class="box n-female" x="1063" y="2020" width="175" height="38" stroke-dasharray="3 2" />
+                <text class="label" x="1150" y="2037">Zilpah (சில்பாள்)</text>
+                <text class="ref" x="1150" y="2049">Gen 30:9-13</text>
+            </g>
+            <path class="edge-m" d="M675 1976 L675 2005 L590 2005 L590 2020" />
+            <path class="edge-m" d="M675 1976 L675 2005 L779 2005 L779 2020" />
+            <path class="edge-m" d="M675 1976 L675 2005 L965 2005 L965 2020" />
+            <path class="edge-m" d="M675 1976 L675 2005 L1150 2005 L1150 2020" />
+
+            <!-- THE 12 SONS (TRIBES) — Gen 29–30, 35:18 -->
+            <text class="sect" x="878" y="2092" style="font-size:9px">THE 12 SONS OF JACOB (Gen 29-30; 35:18) — FOUNDERS
+                OF
+                THE 12 TRIBES OF ISRAEL</text>
+
+            <!-- Row 1: Leah's sons -->
+            <g class="node-g"
+                onclick="info('Reuben (ரூபன்)','1st son (Leah); lost firstborn rights · Gen 29:32; 35:22; 49:3-4')">
+                <rect class="box n-tribe" x="28" y="2110" width="160" height="44" />
+                <text class="label" x="108" y="2129">Reuben (ரூபன்)</text>
+                <text class="ref" x="108" y="2143">Gen 29:32; 49:3</text>
+            </g>
+            <g class="node-g" onclick="info('Simeon (சிமியோன்)','2nd son (Leah) · Gen 29:33; 49:5-7')">
+                <rect class="box n-tribe" x="187" y="2110" width="160" height="44" />
+                <text class="label" x="267" y="2129">Simeon (சிமியோன்)</text>
+                <text class="ref" x="267" y="2143">Gen 29:33; 49:5</text>
+            </g>
+            <g class="node-g" onclick="info('Levi (லேவி)','3rd son (Leah); priestly tribe · Gen 29:34; 49:5-7; Num 3')">
+                <rect class="box n-tribe" x="345" y="2110" width="160" height="44" />
+                <text class="label" x="425" y="2129">Levi (லேவி)</text>
+                <text class="ref" x="425" y="2143">Gen 29:34; 49:5</text>
+            </g>
+            <g class="node-g"
+                onclick="info('Judah (யூதா)','4th son (Leah); royal/messianic tribe · Gen 29:35; 49:8-12; Rev 5:5')">
+                <rect class="box n-tribe" x="503" y="2110" width="160" height="44"
+                    style="stroke:#3B6D11;stroke-width:2" />
+                <text class="label" x="583" y="2129">Judah ★ (யூதா ★)</text>
+                <text class="ref" x="583" y="2143">Gen 29:35; 49:10</text>
+            </g>
+            <g class="node-g" onclick="info('Issachar (இசக்கார்)','5th son (Leah) · Gen 30:18; 49:14-15')">
+                <rect class="box n-tribe" x="663" y="2110" width="160" height="44" />
+                <text class="label" x="743" y="2129">Issachar (இசக்கார்)</text>
+                <text class="ref" x="743" y="2143">Gen 30:18; 49:14</text>
+            </g>
+            <g class="node-g" onclick="info('Zebulun (செபுலோன்)','6th son (Leah) · Gen 30:20; 49:13')">
+                <rect class="box n-tribe" x="822" y="2110" width="160" height="44" />
+                <text class="label" x="902" y="2129">Zebulun (செபுலோன்)</text>
+                <text class="ref" x="902" y="2143">Gen 30:20; 49:13</text>
+            </g>
+            <g class="node-g" onclick="info('Dinah (தீனாள்)','Daughter of Leah · Gen 30:21; 34')">
+                <rect class="box n-female" x="980" y="2110" width="160" height="44" />
+                <text class="label" x="1060" y="2129">Dinah (தீனாள்)</text>
+                <text class="ref" x="1060" y="2143">Gen 30:21; 34</text>
+            </g>
+
+            <!-- Row 2: Bilhah/Zilpah/Rachel sons -->
+            <g class="node-g" onclick="info('Dan (தாண்)','Son of Bilhah (Rachel\'s maid) · Gen 30:6; 49:16-17')">
+                <rect class="box n-tribe" x="28" y="2180" width="160" height="44" />
+                <text class="label" x="108" y="2199">Dan (தாண்)</text>
+                <text class="ref" x="108" y="2213">Gen 30:6; 49:16</text>
+            </g>
+            <g class="node-g" onclick="info('Naphtali (நப்தலி)','Son of Bilhah (Rachel\'s maid) · Gen 30:8; 49:21')">
+                <rect class="box n-tribe" x="187" y="2180" width="160" height="44" />
+                <text class="label" x="267" y="2199">Naphtali (நப்தலி)</text>
+                <text class="ref" x="267" y="2213">Gen 30:8; 49:21</text>
+            </g>
+            <g class="node-g" onclick="info('Gad (காத்)','Son of Zilpah (Leah\'s maid) · Gen 30:11; 49:19')">
+                <rect class="box n-tribe" x="345" y="2180" width="160" height="44" />
+                <text class="label" x="425" y="2199">Gad (காத்)</text>
+                <text class="ref" x="425" y="2213">Gen 30:11; 49:19</text>
+            </g>
+            <g class="node-g" onclick="info('Asher (ஆசேர்)','Son of Zilpah (Leah\'s maid) · Gen 30:13; 49:20')">
+                <rect class="box n-tribe" x="503" y="2180" width="160" height="44" />
+                <text class="label" x="583" y="2199">Asher (ஆசேர்)</text>
+                <text class="ref" x="583" y="2213">Gen 30:13; 49:20</text>
+            </g>
+            <g class="node-g"
+                onclick="info('Joseph (யோசேப்பு)','Son of Rachel; sold; saved Egypt · Gen 30:24; 49:22-26 — tribe split: Ephraim + Manasseh')">
+                <rect class="box n-tribe" x="663" y="2180" width="160" height="44" />
+                <text class="label" x="743" y="2199">Joseph (யோசேப்பு)</text>
+                <text class="ref" x="743" y="2213">Gen 30:24; 49:22</text>
+            </g>
+            <g class="node-g"
+                onclick="info('Benjamin (பென்யமீன்)','Youngest son of Rachel; born at Bethlehem · Gen 35:18-19; 49:27')">
+                <rect class="box n-tribe" x="822" y="2180" width="160" height="44" />
+                <text class="label" x="902" y="2199">Benjamin (பென்யமீன்)</text>
+                <text class="ref" x="902" y="2213">Gen 35:18; 49:27</text>
+            </g>
+
+            <!-- connections Jacob → 12 sons -->
+            <path class="edge-t" d="M675 1976 L675 2090 L108 2090 L108 2110" />
+            <path class="edge-t" d="M675 1976 L675 2090 L267 2090 L267 2110" />
+            <path class="edge-t" d="M675 1976 L675 2090 L425 2090 L425 2110" />
+            <path class="edge-t" d="M675 1976 L675 2090 L583 2090 L583 2110" />
+            <path class="edge-t" d="M675 1976 L675 2090 L743 2090 L743 2110" />
+            <path class="edge-t" d="M675 1976 L675 2090 L902 2090 L902 2110" />
+            <path class="edge-t" d="M675 1976 L675 2090 L1060 2090 L1060 2110" />
+            <path class="edge-t" d="M675 1976 L675 2090 L108 2090 L108 2180" />
+            <path class="edge-t" d="M675 1976 L675 2090 L267 2090 L267 2180" />
+            <path class="edge-t" d="M675 1976 L675 2090 L425 2090 L425 2180" />
+            <path class="edge-t" d="M675 1976 L675 2090 L583 2090 L583 2180" />
+            <path class="edge-t" d="M675 1976 L675 2090 L743 2090 L743 2180" />
+            <path class="edge-t" d="M675 1976 L675 2090 L902 2090 L902 2180" />
+
+            <!-- LEVI → Moses/Aaron line -->
+            <g class="node-g" onclick="info('Kohath (கோகாத்)','Son of Levi · Ex 6:16; Num 3:17')">
+                <rect class="box n-tribe" x="1135" y="2110" width="160" height="38" />
+                <text class="label" x="1215" y="2127">Kohath (கோகாத்)</text>
+                <text class="ref" x="1215" y="2139">Ex 6:16; Num 3</text>
+            </g>
+            <line class="edge-t" x1="425" y1="2154" x2="1215" y2="2110" />
+            <g class="node-g" onclick="info('Amram (அம்ராம்)','Son of Kohath; father of Moses, Aaron, Miriam · Ex 6:18-20')">
+                <rect class="box n-tribe" x="1135" y="2170" width="160" height="38" />
+                <text class="label" x="1215" y="2187">Amram (அம்ராம்)</text>
+                <text class="ref" x="1215" y="2199">Ex 6:18-20</text>
+            </g>
+            <line class="edge-t" x1="1215" y1="2148" x2="1215" y2="2170" />
+            <g class="node-g"
+                onclick="info('Jochebed (யோகெபேத்)','Daughter of Levi; wife of Amram; mother of Moses · Ex 6:20; Num 26:59')">
+                <rect class="box n-female" x="1293" y="2170" width="175" height="38" />
+                <text class="label" x="1380" y="2187">Jochebed (யோகெபேத்)</text>
+                <text class="ref" x="1380" y="2199">Ex 6:20; Num 26:59</text>
+            </g>
+            <g class="node-g"
+                onclick="info('Moses (மோசே)','Son of Amram &amp; Jochebed; deliverer; Law-giver · Ex 2:10; 6:20; Deut 34')">
+                <rect class="box n-tribe" x="1135" y="2240" width="160" height="44"
+                    style="stroke:#3B6D11;stroke-width:2" />
+                <text class="label" x="1215" y="2259">Moses (மோசே)</text>
+                <text class="ref" x="1215" y="2273">Ex 2:10; 6:20</text>
+            </g>
+            <g class="node-g" onclick="info('Aaron (ஆரோன்)','Brother of Moses; first High Priest · Ex 4:14; 6:23; 28:1')">
+                <rect class="box n-tribe" x="1290" y="2240" width="160" height="44" />
+                <text class="label" x="1370" y="2259">Aaron (ஆரோன்)</text>
+                <text class="ref" x="1370" y="2273">Ex 4:14; 6:23</text>
+            </g>
+            <g class="node-g" onclick="info('Miriam (மிரியாம்)','Sister of Moses &amp; Aaron · Ex 2:4; 15:20; Num 26:59')">
+                <rect class="box n-female" x="1443" y="2240" width="160" height="44" />
+                <text class="label" x="1523" y="2259">Miriam (மிரியாம்)</text>
+                <text class="ref" x="1523" y="2273">Ex 2:4; 15:20</text>
+            </g>
+            <path class="edge" d="M1215 2208 L1215 2225 L1215 2240" />
+            <path class="edge" d="M1215 2208 L1215 2225 L1370 2225 L1370 2240" />
+            <path class="edge" d="M1215 2208 L1215 2225 L1523 2225 L1523 2240" />
+
+            <!-- JOSEPH's sons -->
+            <g class="node-g"
+                onclick="info('Asenath (ஆஸ்நாத்)','Egyptian wife of Joseph; daughter of Poti-Pherah · Gen 41:45,50')">
+                <rect class="box n-female" x="799" y="2260" width="170" height="38" stroke-dasharray="3 2" />
+                <text class="label" x="884" y="2277">Asenath (ஆஸ்நாத்)</text>
+                <text class="ref" x="884" y="2289">Gen 41:45,50</text>
+            </g>
+            <g class="node-g" onclick="info('Manasseh (மனாசே)','Firstborn son of Joseph; half-tribe · Gen 41:51; 48:5')">
+                <rect class="box n-tribe" x="651" y="2320" width="170" height="44" />
+                <text class="label" x="736" y="2339">Manasseh (மனாசே)</text>
+                <text class="ref" x="736" y="2353">Gen 41:51; 48:5</text>
+            </g>
+            <g class="node-g"
+                onclick="info('Ephraim (எப்பிராயீம்)','Second son of Joseph; half-tribe; blessed over Manasseh · Gen 41:52; 48:5,17-20')">
+                <rect class="box n-tribe" x="824" y="2320" width="170" height="44" />
+                <text class="label" x="909" y="2339">Ephraim (எப்பிராயீம்)</text>
+                <text class="ref" x="909" y="2353">Gen 41:52; 48:5</text>
+            </g>
+            <path class="edge" d="M743 2224 L743 2300 L736 2300 L736 2320" />
+            <path class="edge" d="M743 2224 L743 2300 L909 2300 L909 2320" />
+
+            <!-- ═══════════════════════════════════════
+     JUDAH LINE → DAVID → KINGS → CHRIST
+═══════════════════════════════════════ -->
+            <text class="sect" x="583" y="2400" style="font-size:8.5px;fill:#993556">JUDAH → PEREZ → HEZRON → RAM → ...
+                →
+                JESSE → DAVID</text>
+            <text class="sub" x="583" y="2415" style="font-size:7.5px">(Ruth 4:18-22; 1 Chr 2:1-15; Mt 1:3-6)</text>
+
+            <!-- Judah's line toward David -->
+            <!-- Er & Onan (sons of Judah) -->
+            <g class="node-g"
+                onclick="info('Tamar (தாமார்)','Daughter-in-law of Judah; mother of Perez &amp; Zerah · Gen 38:6-30; Mt 1:3')">
+                <rect class="box n-female" x="408" y="2430" width="170" height="38" />
+                <text class="label" x="493" y="2447">Tamar (தாமார்)</text>
+                <text class="ref" x="493" y="2459">Gen 38:6; Mt 1:3</text>
+            </g>
+            <path class="edge-m" d="M583 2154 L583 2415 L493 2415 L493 2430" />
+
+            <!-- Perez (key ancestor, Ruth 4:18) -->
+            <g class="node-g"
+                onclick="info('Perez (பேரேஸ்)','Son of Judah &amp; Tamar; twin; ancestor of David · Gen 38:29; Ruth 4:18; Mt 1:3')">
+                <rect class="box n-king" x="502" y="2490" width="170" height="40" />
+                <text class="label" x="587" y="2508">Perez (பேரேஸ்)</text>
+                <text class="ref" x="587" y="2521">Gen 38:29; Ruth 4:18</text>
+            </g>
+            <line class="edge-k" x1="587" y1="2468" x2="587" y2="2490" />
+
+            <g class="node-g" onclick="info('Zerah (சேராகு)','Twin of Perez; son of Judah · Gen 38:30; Mt 1:3')">
+                <rect class="box n-king" x="664" y="2490" width="170" height="40" stroke-dasharray="3 2" />
+                <text class="label" x="749" y="2508">Zerah (சேராகு)</text>
+                <text class="ref" x="749" y="2521">Gen 38:30; Mt 1:3</text>
+            </g>
+            <path class="edge" d="M493 2468 L493 2480 L749 2480 L749 2490" />
+
+            <g class="node-g" onclick="info('Hezron (எஸ்ரோன்)','Son of Perez · Ruth 4:18-19; 1 Chr 2:5; Mt 1:3')">
+                <rect class="box n-king" x="502" y="2552" width="170" height="38" />
+                <text class="label" x="587" y="2569">Hezron (எஸ்ரோன்)</text>
+                <text class="ref" x="587" y="2581">Ruth 4:18-19; Mt 1:3</text>
+            </g>
+            <line class="edge-k" x1="587" y1="2530" x2="587" y2="2552" />
+            <g class="node-g" onclick="info('Ram (ராம்)','Son of Hezron · Ruth 4:19; 1 Chr 2:9; Mt 1:3-4')">
+                <rect class="box n-king" x="502" y="2612" width="170" height="38" />
+                <text class="label" x="587" y="2629">Ram (ராம்)</text>
+                <text class="ref" x="587" y="2641">Ruth 4:19; Mt 1:3</text>
+            </g>
+            <line class="edge-k" x1="587" y1="2590" x2="587" y2="2612" />
+            <g class="node-g" onclick="info('Amminadab (அம்மினதாப்)','Son of Ram · Ruth 4:19-20; 1 Chr 2:10; Mt 1:4')">
+                <rect class="box n-king" x="506" y="2672" width="190" height="38" />
+                <text class="label" x="601" y="2689">Amminadab (அம்மினதாப்)</text>
+                <text class="ref" x="601" y="2701">Ruth 4:19-20; Mt 1:4</text>
+            </g>
+            <line class="edge-k" x1="587" y1="2650" x2="601" y2="2672" />
+            <g class="node-g"
+                onclick="info('Nahshon (நகசோன்)','Son of Amminadab; leader of Judah in wilderness · Ruth 4:20; Num 1:7; Mt 1:4')">
+                <rect class="box n-king" x="506" y="2732" width="190" height="38" />
+                <text class="label" x="601" y="2749">Nahshon (நகசோன்)</text>
+                <text class="ref" x="601" y="2761">Ruth 4:20; Num 1:7</text>
+            </g>
+            <line class="edge-k" x1="601" y1="2710" x2="601" y2="2732" />
+            <g class="node-g" onclick="info('Salmon (சல்மோன்)','Son of Nahshon; husband of Rahab · Ruth 4:20-21; Mt 1:4-5')">
+                <rect class="box n-king" x="506" y="2792" width="190" height="38" />
+                <text class="label" x="601" y="2809">Salmon (சல்மோன்)</text>
+                <text class="ref" x="601" y="2821">Ruth 4:20-21; Mt 1:4</text>
+            </g>
+            <line class="edge-k" x1="601" y1="2770" x2="601" y2="2792" />
+            <!-- Rahab -->
+            <g class="node-g"
+                onclick="info('Rahab (ராகாப்)','Canaanite woman who hid the spies; wife of Salmon; in Christ\'s genealogy · Josh 2:1; Mt 1:5')">
+                <rect class="box n-female" x="712" y="2792" width="170" height="38" />
+                <text class="label" x="797" y="2809">Rahab (ராகாப்)</text>
+                <text class="ref" x="797" y="2821">Josh 2:1; Mt 1:5</text>
+            </g>
+            <g class="node-g"
+                onclick="info('Boaz (போவாஸ்)','Son of Salmon &amp; Rahab; kinsman-redeemer of Ruth · Ruth 2:1; 4:21; Mt 1:5')">
+                <rect class="box n-king" x="506" y="2852" width="190" height="38" />
+                <text class="label" x="601" y="2869">Boaz (போவாஸ்)</text>
+                <text class="ref" x="601" y="2881">Ruth 2:1; Mt 1:5</text>
+            </g>
+            <line class="edge-k" x1="601" y1="2830" x2="601" y2="2852" />
+            <!-- Ruth -->
+            <g class="node-g"
+                onclick="info('Ruth (ரூத்)','Moabite daughter-in-law of Naomi; wife of Boaz; great-grandmother of David · Ruth 1:4; 4:13; Mt 1:5')">
+                <rect class="box n-female" x="712" y="2852" width="170" height="38" />
+                <text class="label" x="797" y="2869">Ruth (ரூத்)</text>
+                <text class="ref" x="797" y="2881">Ruth 1:4; 4:13; Mt 1:5</text>
+            </g>
+            <g class="node-g"
+                onclick="info('Obed (ஓபேத்)','Son of Boaz &amp; Ruth; father of Jesse · Ruth 4:17,21-22; Mt 1:5')">
+                <rect class="box n-king" x="506" y="2912" width="190" height="38" />
+                <text class="label" x="601" y="2929">Obed (ஓபேத்)</text>
+                <text class="ref" x="601" y="2941">Ruth 4:17,22; Mt 1:5</text>
+            </g>
+            <line class="edge-k" x1="601" y1="2890" x2="601" y2="2912" />
+            <g class="node-g" onclick="info('Jesse (ஈசாய்)','Son of Obed; father of David; " root of Jesse" · Ruth 4:22; 1 Sam
+                16:1; Mt 1:5-6')">
+                <rect class="box n-king" x="506" y="2972" width="190" height="38" />
+                <text class="label" x="601" y="2989">Jesse (ஈசாய்)</text>
+                <text class="ref" x="601" y="3001">Ruth 4:22; 1 Sam 16:1</text>
+            </g>
+            <line class="edge-k" x1="601" y1="2950" x2="601" y2="2972" />
+
+            <!-- DAVID -->
+            <g class="node-g"
+                onclick="info('David','King of Israel; man after God\'s heart; covenanted throne forever · 1 Sam 16; 2 Sam 7; Mt 1:6 · ruled 40 yrs')">
+                <rect class="box n-king" x="498" y="3040" width="220" height="50"
+                    style="stroke:#993556;stroke-width:2.5" />
+                <text class="label" x="608" y="3059">King David (தாவீது ராஜா)</text>
+                <text class="ref" x="608" y="3074">1 Sam 16; 2 Sam 7; Mt 1:6</text>
+            </g>
+            <line class="edge-k" x1="601" y1="3010" x2="608" y2="3040" />
+
+            <!-- Bathsheba -->
+            <g class="node-g"
+                onclick="info('Bathsheba (பத்சேபாள்)','Wife of Uriah, then David; mother of Solomon · 2 Sam 11-12; Mt 1:6 calls her "
+                wife of Uriah"')">
+                <rect class="box n-female" x="742" y="3040" width="190" height="50" />
+                <text class="label" x="837" y="3059">Bathsheba (பத்சேபாள்)</text>
+                <text class="ref" x="837" y="3073">"wife of Uriah" · 2 Sam 11</text>
+            </g>
+
+            <!-- David's other sons noted in Scripture -->
+            <text class="sub" x="338" y="3108" style="font-size:8px">Other sons of David: Amnon, Absalom, Adonijah, etc.
+                (2
+                Sam 3:2-5; 5:13-16)</text>
+
+            <!-- ═══════════════════════════════════════
+     KINGS OF JUDAH (Mt 1 line)
+═══════════════════════════════════════ -->
+            <!-- Solomon -->
+            <g class="node-g"
+                onclick="info('Solomon (சாலொமோன்)','Son of David &amp; Bathsheba; built the Temple; wisest king · 2 Sam 12:24; 1 Kgs 1-11; Mt 1:6')">
+                <rect class="box n-king" x="494" y="3120" width="200" height="44" />
+                <text class="label" x="594" y="3139">Solomon (சாலொமோன்)</text>
+                <text class="ref" x="594" y="3153">1 Kgs 1-11; Mt 1:6</text>
+            </g>
+            <path class="edge-k" d="M608 3090 L608 3106 L594 3106 L594 3120" />
+
+            <g class="node-g" onclick="info('Rehoboam (ரெகொபெயாம்)','Son of Solomon; kingdom split · 1 Kgs 12; Mt 1:7')">
+                <rect class="box n-king" x="494" y="3186" width="200" height="40" />
+                <text class="label" x="594" y="3204">Rehoboam (ரெகொபெயாம்)</text>
+                <text class="ref" x="594" y="3216">1 Kgs 12; Mt 1:7</text>
+            </g>
+            <line class="edge-k" x1="594" y1="3164" x2="594" y2="3186" />
+            <g class="node-g" onclick="info('Abijah (அபியா)','Son of Rehoboam · 1 Kgs 15:1-8; Mt 1:7')">
+                <rect class="box n-king" x="494" y="3248" width="200" height="40" />
+                <text class="label" x="594" y="3266">Abijah (அபியா)</text>
+                <text class="ref" x="594" y="3278">1 Kgs 15:1; Mt 1:7</text>
+            </g>
+            <line class="edge-k" x1="594" y1="3226" x2="594" y2="3248" />
+            <g class="node-g" onclick="info('Asa (ஆசா)','Son of Abijah; good king · 1 Kgs 15:9-24; Mt 1:7')">
+                <rect class="box n-king" x="494" y="3310" width="200" height="40" />
+                <text class="label" x="594" y="3328">Asa (ஆசா)</text>
+                <text class="ref" x="594" y="3340">1 Kgs 15:9; Mt 1:7</text>
+            </g>
+            <line class="edge-k" x1="594" y1="3288" x2="594" y2="3310" />
+            <g class="node-g" onclick="info('Jehoshaphat (யோசபாத்)','Son of Asa; good king · 1 Kgs 22:41-50; Mt 1:8')">
+                <rect class="box n-king" x="496" y="3372" width="210" height="40" />
+                <text class="label" x="601" y="3390">Jehoshaphat (யோசபாத்)</text>
+                <text class="ref" x="601" y="3402">1 Kgs 22:41; Mt 1:8</text>
+            </g>
+            <line class="edge-k" x1="594" y1="3350" x2="601" y2="3372" />
+            <g class="node-g"
+                onclick="info('Joram (யோராம்)','Son of Jehoshaphat · 2 Kgs 8:16-24; Mt 1:8 — Mt omits Ahaziah, Joash, Amaziah (3 generations)')">
+                <rect class="box n-king" x="496" y="3434" width="210" height="44" />
+                <text class="label" x="601" y="3453">Joram (யோராம்)</text>
+                <text class="ref" x="601" y="3467">2 Kgs 8:16; Mt 1:8</text>
+            </g>
+            <line class="edge-k" x1="601" y1="3412" x2="601" y2="3434" />
+            <text class="sub" x="729" y="3460" style="font-size:7.5px;fill:#993556">*3 kings omitted in Mt 1:8</text>
+            <text class="sub" x="729" y="3472" style="font-size:7.5px;fill:#666">(Ahaziah,Joash,Amaziah)</text>
+            <g class="node-g"
+                onclick="info('Uzziah (உசியா)','Son of Amaziah; great king; smitten with leprosy · 2 Kgs 15:1-7; Mt 1:8-9')">
+                <rect class="box n-king" x="496" y="3500" width="210" height="40" />
+                <text class="label" x="601" y="3518">Uzziah (உசியா)</text>
+                <text class="ref" x="601" y="3530">2 Kgs 15:1; Mt 1:8</text>
+            </g>
+            <line class="edge-k" x1="601" y1="3478" x2="601" y2="3500" />
+            <g class="node-g" onclick="info('Jotham (யோதாம்)','Son of Uzziah · 2 Kgs 15:32-38; Mt 1:9')">
+                <rect class="box n-king" x="494" y="3562" width="200" height="40" />
+                <text class="label" x="594" y="3580">Jotham (யோதாம்)</text>
+                <text class="ref" x="594" y="3592">2 Kgs 15:32; Mt 1:9</text>
+            </g>
+            <line class="edge-k" x1="601" y1="3540" x2="594" y2="3562" />
+            <g class="node-g" onclick="info('Ahaz (ஆகாஸ்)','Son of Jotham; wicked king · 2 Kgs 16; Mt 1:9')">
+                <rect class="box n-king" x="494" y="3624" width="200" height="40" />
+                <text class="label" x="594" y="3642">Ahaz (ஆகாஸ்)</text>
+                <text class="ref" x="594" y="3654">2 Kgs 16; Mt 1:9</text>
+            </g>
+            <line class="edge-k" x1="594" y1="3602" x2="594" y2="3624" />
+            <g class="node-g"
+                onclick="info('Hezekiah (எசேக்கியா)','Son of Ahaz; good king; great revival · 2 Kgs 18-20; Mt 1:9-10')">
+                <rect class="box n-king" x="494" y="3686" width="200" height="40" />
+                <text class="label" x="594" y="3704">Hezekiah (எசேக்கியா)</text>
+                <text class="ref" x="594" y="3716">2 Kgs 18-20; Mt 1:9</text>
+            </g>
+            <line class="edge-k" x1="594" y1="3664" x2="594" y2="3686" />
+            <g class="node-g"
+                onclick="info('Manasseh (மனாசே)','Son of Hezekiah; most wicked king; later repented · 2 Kgs 21; Mt 1:10')">
+                <rect class="box n-king" x="494" y="3748" width="200" height="40" />
+                <text class="label" x="594" y="3766">Manasseh (மனாசே)</text>
+                <text class="ref" x="594" y="3778">2 Kgs 21; Mt 1:10</text>
+            </g>
+            <line class="edge-k" x1="594" y1="3726" x2="594" y2="3748" />
+            <g class="node-g" onclick="info('Amon (ஆமோன்)','Son of Manasseh; wicked; assassinated · 2 Kgs 21:19-26; Mt 1:10')">
+                <rect class="box n-king" x="494" y="3810" width="200" height="40" />
+                <text class="label" x="594" y="3828">Amon (ஆமோன்)</text>
+                <text class="ref" x="594" y="3840">2 Kgs 21:19; Mt 1:10</text>
+            </g>
+            <line class="edge-k" x1="594" y1="3788" x2="594" y2="3810" />
+            <g class="node-g"
+                onclick="info('Josiah (யோசியா)','Son of Amon; great reforming king; found the Law · 2 Kgs 22-23; Mt 1:10')">
+                <rect class="box n-king" x="494" y="3872" width="200" height="40" />
+                <text class="label" x="594" y="3890">Josiah (யோசியா)</text>
+                <text class="ref" x="594" y="3902">2 Kgs 22-23; Mt 1:10</text>
+            </g>
+            <line class="edge-k" x1="594" y1="3850" x2="594" y2="3872" />
+
+            <!-- Jeconiah (Jehoiachin) — BABYLONIAN CAPTIVITY -->
+            <g class="node-g"
+                onclick="info('Jeconiah (எகோனியா)','Son of Josiah (Mt 1:11 — skips Jehoiakim); deported to Babylon · 2 Kgs 24:6-16; Mt 1:11-12 — BABYLONIAN EXILE')">
+                <rect class="box n-king" x="484" y="3934" width="220" height="44"
+                    style="stroke:darkred;stroke-dasharray:5 2" />
+                <text class="label" x="594" y="3953">Jeconiah (எகோனியா)</text>
+                <text class="ref" x="594" y="3967">2 Kgs 24; Mt 1:11 · Exile</text>
+            </g>
+            <line class="edge-k" x1="594" y1="3912" x2="594" y2="3934" />
+            <text class="sub" x="729" y="3958" style="font-size:8px;fill:darkred">★ BABYLONIAN CAPTIVITY (Mt
+                1:17)</text>
+
+            <!-- POST-EXILE line (Mt 1:12-16) -->
+            <text class="sect" x="594" y="4000" style="font-size:8.5px">Post-exile line (Matthew 1:12-16)</text>
+            <g class="node-g" onclick="info('Shealtiel (செயல்தியேல்)','Son of Jeconiah · Mt 1:12; 1 Chr 3:17; Ezra 3:2')">
+                <rect class="box n-nt" x="494" y="4018" width="200" height="38" />
+                <text class="label" x="594" y="4035">Shealtiel (செயல்தியேல்)</text>
+                <text class="ref" x="594" y="4047">Mt 1:12; 1 Chr 3:17</text>
+            </g>
+            <line class="edge-n" x1="594" y1="3978" x2="594" y2="4018" />
+            <g class="node-g"
+                onclick="info('Zerubbabel (செருபாபேல்)','Son of Shealtiel; led return from exile; governor · Mt 1:12; Ezra 2:2; Hag 1:1; Zech 4:6-10')">
+                <rect class="box n-nt" x="494" y="4078" width="200" height="44" />
+                <text class="label" x="594" y="4097">Zerubbabel (செருபாபேல்)</text>
+                <text class="ref" x="594" y="4111">Mt 1:12; Ezra 2:2</text>
+            </g>
+            <line class="edge-n" x1="594" y1="4056" x2="594" y2="4078" />
+            <g class="node-g"
+                onclick="info('Abiud (அபியூத்)','Son of Zerubbabel · Mt 1:13 — not in OT lists; Matthew\'s unique record')">
+                <rect class="box n-nt" x="494" y="4144" width="200" height="38" />
+                <text class="label" x="594" y="4161">Abiud (அபியூத்)</text>
+                <text class="ref" x="594" y="4173">Mt 1:13</text>
+            </g>
+            <line class="edge-n" x1="594" y1="4122" x2="594" y2="4144" />
+            <g class="node-g" onclick="info('Eliakim (எலியாக்கீம்)','Son of Abiud · Mt 1:13')">
+                <rect class="box n-nt" x="494" y="4204" width="200" height="38" />
+                <text class="label" x="594" y="4221">Eliakim (எலியாக்கீம்)</text>
+                <text class="ref" x="594" y="4233">Mt 1:13</text>
+            </g>
+            <line class="edge-n" x1="594" y1="4182" x2="594" y2="4204" />
+            <g class="node-g" onclick="info('Azor (ஆசோர்)','Son of Eliakim · Mt 1:13-14')">
+                <rect class="box n-nt" x="494" y="4264" width="200" height="38" />
+                <text class="label" x="594" y="4281">Azor (ஆசோர்)</text>
+                <text class="ref" x="594" y="4293">Mt 1:13-14</text>
+            </g>
+            <line class="edge-n" x1="594" y1="4242" x2="594" y2="4264" />
+            <g class="node-g" onclick="info('Zadok (சாதோக்)','Son of Azor · Mt 1:14')">
+                <rect class="box n-nt" x="494" y="4324" width="200" height="38" />
+                <text class="label" x="594" y="4341">Zadok (சாதோக்)</text>
+                <text class="ref" x="594" y="4353">Mt 1:14</text>
+            </g>
+            <line class="edge-n" x1="594" y1="4302" x2="594" y2="4324" />
+            <g class="node-g" onclick="info('Achim (ஆகீம்)','Son of Zadok · Mt 1:14')">
+                <rect class="box n-nt" x="494" y="4384" width="200" height="38" />
+                <text class="label" x="594" y="4401">Achim (ஆகீம்)</text>
+                <text class="ref" x="594" y="4413">Mt 1:14</text>
+            </g>
+            <line class="edge-n" x1="594" y1="4362" x2="594" y2="4384" />
+            <g class="node-g" onclick="info('Eliud (எலியூத்)','Son of Achim · Mt 1:14-15')">
+                <rect class="box n-nt" x="494" y="4444" width="200" height="38" />
+                <text class="label" x="594" y="4461">Eliud (எலியூத்)</text>
+                <text class="ref" x="594" y="4473">Mt 1:14-15</text>
+            </g>
+            <line class="edge-n" x1="594" y1="4422" x2="594" y2="4444" />
+            <g class="node-g" onclick="info('Eleazar (எலெயாசார்)','Son of Eliud · Mt 1:15')">
+                <rect class="box n-nt" x="494" y="4504" width="200" height="38" />
+                <text class="label" x="594" y="4521">Eleazar (எலெயாசார்)</text>
+                <text class="ref" x="594" y="4533">Mt 1:15</text>
+            </g>
+            <line class="edge-n" x1="594" y1="4482" x2="594" y2="4504" />
+            <g class="node-g" onclick="info('Matthan (மாத்தான்)','Son of Eleazar · Mt 1:15')">
+                <rect class="box n-nt" x="494" y="4564" width="200" height="38" />
+                <text class="label" x="594" y="4581">Matthan (மாத்தான்)</text>
+                <text class="ref" x="594" y="4593">Mt 1:15</text>
+            </g>
+            <line class="edge-n" x1="594" y1="4542" x2="594" y2="4564" />
+            <g class="node-g"
+                onclick="info('Jacob (யாக்கோபு)','Son of Matthan; father of Joseph husband of Mary · Mt 1:15-16')">
+                <rect class="box n-nt" x="479" y="4624" width="230" height="38" />
+                <text class="label" x="594" y="4641">Jacob (யாக்கோபு)</text>
+                <text class="ref" x="594" y="4653">Mt 1:15-16</text>
+            </g>
+            <line class="edge-n" x1="594" y1="4602" x2="594" y2="4624" />
+
+            <!-- Joseph & Mary -->
+            <g class="node-g"
+                onclick="info('Joseph (யோசேப்பு)','Son of Jacob (Mt 1:16) / son of Heli (Lk 3:23 — Heli being Mary\'s father by levirate reckoning); legal father of Jesus · Mt 1:16,20')">
+                <rect class="box n-nt" x="454" y="4690" width="240" height="46" />
+                <text class="label" x="574" y="4709">Joseph (யோசேப்பு)</text>
+                <text class="ref" x="574" y="4723">(husband of Mary) · Mt 1:16</text>
+            </g>
+            <line class="edge-n" x1="594" y1="4662" x2="574" y2="4690" />
+
+            <g class="node-g"
+                onclick="info('Mary (மரியாள்)','Virgin mother of Jesus; of the house of David (Lk 1:27,32); God\'s chosen vessel · Lk 1:26-35; Mt 1:16,18-25')">
+                <rect class="box n-female" x="734" y="4690" width="220" height="46"
+                    style="stroke:#c44b80;stroke-width:2" />
+                <text class="label" x="844" y="4709">Mary (Miriam)</text>
+                <text class="ref" x="844" y="4723">Lk 1:26-35; Mt 1:16</text>
+            </g>
+
+            <!-- Holy Spirit note -->
+            <g class="node-g"
+                onclick="info('Holy Spirit (பரிசுத்த ஆவியானவர்)','The power of the Most High; Mary conceived by the Holy Spirit · Lk 1:35; Mt 1:18,20')">
+                <rect class="box n-god" x="1037" y="4710" width="215" height="40" />
+                <text class="label" x="1143" y="4729">Holy Spirit (பரிசுத்த ஆவியானவர்)</text>
+                <text class="ref" x="1143" y="4742">Lk 1:35; Mt 1:18</text>
+            </g>
+            <line class="edge-s" x1="1143" y1="4750" x2="945" y2="4736" />
+
+            <!-- JESUS CHRIST -->
+            <g class="node-g"
+                onclick="info('JESUS CHRIST (இயேசு கிறிஸ்து)','Son of God; born of the Virgin Mary; legal son of Joseph; Messiah · Mt 1:1,16,21-25; Lk 1:31-35; 3:23-38; Jn 1:1,14; Rev 22:13,16 — "
+                the Lion of Judah, the Root of David" (Rev 5:5)')">
+                <rect class="box n-god" x="456" y="4760" width="290" height="56"
+                    style="stroke:#b8860b;stroke-width:3" />
+                <text class="label" x="601" y="4779" style="font-size:14px;font-weight:600">JESUS CHRIST (இயேசு கிறிஸ்து)</text>
+                <text class="ref" x="601" y="4797">Son of God · Mt 1:1; Lk 1:31-35</text>
+                <text class="ref" x="601" y="4808">Rev 22:13,16 · "Lion of Judah"</text>
+            </g>
+            <path class="edge-m" d="M844 4736 L844 4750 L601 4750 L601 4760" />
+            <path class="edge-k" d="M574 4736 L574 4750 L601 4750 L601 4760" />
+
+            <!-- LUKE 3 NOTE — Heli line -->
+            <g style="opacity:.85">
+                <rect x="1044" y="4630" width="410" height="140" rx="83"
+                    style="fill:var(--color-background-secondary,#f7f5f0);stroke:var(--color-border-tertiary,#ccc);stroke-width:0.7" />
+                <text class="sub" x="1208" y="4652" style="font-size:9px;font-weight:500">Luke 3:23-38 — traces back
+                    through
+                    Mary's line</text>
+                <text class="sub" x="1208" y="4668" style="font-size:8.5px">Jesus "being the son (as was supposed) of
+                    Joseph,</text>
+                <text class="sub" x="1208" y="4682" style="font-size:8.5px">the son of Heli" — Heli = Mary's
+                    father</text>
+                <text class="sub" x="1208" y="4696" style="font-size:8.5px">(levirate/legal reckoning — Lk 3:23)</text>
+                <text class="sub" x="1208" y="4712" style="font-size:8.5px">Luke traces: David → Nathan (not
+                    Solomon)</text>
+                <text class="sub" x="1208" y="4726" style="font-size:8.5px">→ ... → Heli → Mary → Jesus</text>
+                <text class="sub" x="1208" y="4740" style="font-size:8.5px">(Lk 3:31 — Nathan, son of David, 2 Sam
+                    5:14)</text>
+            </g>
+
+            <!-- MATTHEW 1 summary boxes -->
+            <g style="opacity:.85">
+                <rect x="1044" y="4482" width="410" height="138" rx="83"
+                    style="fill:var(--color-background-secondary,#f7f5f0);stroke:var(--color-border-tertiary,#ccc);stroke-width:0.7" />
+                <text class="sub" x="1208" y="4504" style="font-size:9px;font-weight:500">Matthew 1:17 — three sets of 14
+                    generations:</text>
+                <text class="sub" x="1208" y="4520" style="font-size:8.5px">① Abraham → David (14 generations)</text>
+                <text class="sub" x="1208" y="4536" style="font-size:8.5px">② David → Babylonian exile (14
+                    generations)</text>
+                <text class="sub" x="1208" y="4552" style="font-size:8.5px">③ Exile → Christ (14 generations)</text>
+                <text class="sub" x="1208" y="4572" style="font-size:8.5px">Women in Matthew's line: Tamar (Mt
+                    1:3),</text>
+                <text class="sub" x="1208" y="4586" style="font-size:8.5px">Rahab (Mt 1:5), Ruth (Mt 1:5),</text>
+                <text class="sub" x="1208" y="4600" style="font-size:8.5px">"wife of Uriah"/Bathsheba (Mt 1:6),</text>
+                <text class="sub" x="1208" y="4614" style="font-size:8.5px">Mary (Mt 1:16)</text>
+            </g>
+
+        </svg>
+    </div>
+
+    <div id="info-panel"
+        style="display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--color-background-primary,#fff);border:1px solid var(--color-border-secondary,#ccc);border-radius:10px;padding:14px 20px;min-width:300px;max-width:560px;box-shadow:0 4px 20px rgba(0,0,0,.13);z-index:99">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+            <div>
+                <div id="info-name" style="font-size:15px;font-weight:500;color:var(--color-text-primary)"></div>
+                <div id="info-desc"
+                    style="font-size:12px;color:var(--color-text-secondary);margin-top:4px;line-height:1.5">
+                </div>
+            </div>
+            <button onclick="document.getElementById('info-panel').style.display='none'"
+                style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--color-text-secondary);flex-shrink:0;padding:0;line-height:1">×</button>
+        </div>
+    </div>
+
+    <script>
+        function info(name, desc) {
+            if (window.ReactNativeWebView) {
+                window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'INFO', name: name, desc: desc }));
+            } else {
+                document.getElementById('info-name').textContent = name;
+                document.getElementById('info-desc').textContent = desc;
+                document.getElementById('info-panel').style.display = 'block';
+            }
+        }
+    </script>
+</body>
+
+</html>

@@ -54,7 +54,7 @@ export default function BibleHtmlRenderer({
     if (!html) return '';
     // Instead of stripping <p>, convert to <div> to keep classes (like s1, s2)
     const preserved = html.replace(/<p/g, '<div').replace(/<\/p>/g, '</div>');
-    
+
     // Use the passed chapterId or attempt to find it from ANY element that has it
     let baseId = chapterId;
     if (!baseId) {
@@ -176,12 +176,25 @@ export default function BibleHtmlRenderer({
     v: { ...classesStyles.v, color: colorScheme === 'dark' ? '#f97316' : '#1a355b' },
   };
 
+  const themeTagsStyles = {
+    ...tagsStyles,
+    p: { ...tagsStyles.p, textAlign: alignment, color: colorScheme === 'dark' ? '#f8fafc' : '#334155' },
+    div: { textAlign: alignment, color: colorScheme === 'dark' ? '#f8fafc' : '#334155' }
+  };
+
   return (
     <RenderHTML
       contentWidth={width}
       source={{ html: processedHtml }}
+      baseStyle={{
+        color: colorScheme === 'dark' ? '#f8fafc' : '#334155',
+        fontSize: 18,
+        lineHeight: 28,
+        fontFamily: 'Inter',
+        textAlign: alignment
+      }}
       classesStyles={themeClassesStyles}
-      tagsStyles={{ ...tagsStyles, p: { ...tagsStyles.p, textAlign: alignment, color: colorScheme === 'dark' ? '#f8fafc' : '#334155' } }}
+      tagsStyles={themeTagsStyles}
       ignoredStyles={['margin']}
       ignoredTags={['a', 'note', 'footnote', 'script']}
       renderers={renderers}

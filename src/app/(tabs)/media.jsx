@@ -49,7 +49,6 @@ const CATEGORIES = [
 
 
 
-
 // --- Helper Components & Renders (Moved outside for stability) ---
 
 const RenderHeader = ({ searchQuery, setSearchQuery, categories, selectedCategory, setSelectedCategory, isDark }) => (
@@ -202,6 +201,8 @@ const RenderEmpty = ({ loading, searchQuery }) => (
     </View>
 );
 
+
+
 export default function MediaScreen() {
     const router = useRouter();
     const { colorScheme } = useColorScheme();
@@ -211,6 +212,7 @@ export default function MediaScreen() {
     const [videos, setVideos] = useState([]);
     const [categories, setCategories] = useState(CATEGORIES);
     const [loading, setLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState("Videos");
 
     useEffect(() => {
         setLoading(true);
@@ -276,8 +278,32 @@ export default function MediaScreen() {
                     isDark={isDark}
                 />
 
+                <View className="mx-6 mt-6 mb-2 flex-row items-center rounded-3xl bg-slate-100 p-1.5 dark:bg-slate-800/60">
+                    {['Videos', 'Bible Genealogy'].map((tab) => {
+                        const isActive = tab === 'Videos';
+                        return (
+                            <TouchableOpacity
+                                key={tab}
+                                onPress={() => {
+                                    if (tab === 'Bible Genealogy') {
+                                        router.push('/familytree');
+                                    }
+                                }}
+                                className="flex-1 items-center justify-center rounded-2xl py-2.5"
+                                style={{
+                                    backgroundColor: isActive ? (isDark ? '#334155' : 'white') : 'transparent',
+                                }}
+                            >
+                                <Text style={{ fontSize: 12, letterSpacing: 0.6, color: isActive ? (isDark ? '#ffffff' : '#0f172a') : '#64748b' }} className="font-black uppercase">
+                                    {tab}
+                                </Text>
+                            </TouchableOpacity>
+                        );
+                    })}
+                </View>
+
                 <View className="flex-1">
-                    <View className="px-6 pt-6 pb-2">
+                    <View className="px-6 pt-4 pb-2">
                         <Text className="text-lg font-black text-slate-900 dark:text-white">
                             Video Overviews
                         </Text>
