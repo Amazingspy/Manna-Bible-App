@@ -10,27 +10,7 @@ import { useVideoPlayer, VideoView } from "expo-video";
 const API_BASE = 'https://manna-60059371341.development.catalystserverless.in/server/manna_function';
 
 
-// Mock Data for Featured Series
-const FEATURED_SERIES = [
-    {
-        id: "s1",
-        title: "Wisdom Literature",
-        desc: "Explore the heart of Ecclesiastes & Job.",
-        img: "https://lh3.googleusercontent.com/aida-public/AB6AXuB5S0EumXpQ830fo8DzkldEaiah6_QmINki6pwfyoz3LLlFIYFQxG2bTSipkdvjwooCjqyOJSuSYSEuscMwWIGKAjOkSL8RMWGq6_vNRGKgl8WhBw_4DqZp05uMgFueoV42TQf9SE01FGhmwZxquowl2kMkcu9lwmZcyt9Va4L4OqZ0GHKeEtcW8pVdSK_kJeVf9q_TVZ19DCfaUVj6rDL71IppmlIJ132c-j1PanApS3yN1m9HXWJk8HAe3-h60wnTdpvF90TmsibN"
-    },
-    {
-        id: "s2",
-        title: "The Royal Priest",
-        desc: "Discover humanity's calling to rule with God.",
-        img: "https://lh3.googleusercontent.com/aida-public/AB6AXuDSxL_WsfjA7JNfBJDhyzWok_XhEGJN8mqEZ2yK-kalzyUj_YTSZW80K0fXTRT53VrRyM7mMLdTvQHhk8EcBDrXtLvZJlQteUb6_7pvkVk23leQOxjq7_YbuWr29g-6uquOmDv2UbrmuNivMcD7_fe_EExCxy2xiJXZIb_qGBMvOBStX0s-9dyix5xJV56_0M_Pe5aWZh8WQ_Lm6HBaqwuvg3Ur7blKr7A-3J9tpZK9aMdNTgTuGwck3d60g67zpTtczGl0GZ-WOGem"
-    },
-    {
-        id: "s3",
-        title: "Sabbath",
-        desc: "The pattern of trusting God's provision.",
-        img: "https://lh3.googleusercontent.com/aida-public/AB6AXuCCjkFgFt43P__x0myzEKO7JfzOSSv8sRTY1miBTjMV7aOIFltbceGkygTgXUCYoCUo18nJbipVvQ1QE4tLMJLyPsqUWKpdY4svdLG5afENqxfN9svTJhzRqETUHdLGzRfOh3AGCHa1anOzbT5TBY15xZuhXCuCERyD3FOf5syJd0I05dSojxuXu1hfxAl3qLqr18RWmz5YLcx_uZMAXedgjbeStxiPkkj2JuoJwxg-hXf-VWJ2fwMkdT4kBbQQiuz2YVkSnPG5PHTm"
-    }
-];
+
 
 // Generic fallback image
 const DEFAULT_IMG = "https://lh3.googleusercontent.com/aida-public/AB6AXuCCjkFgFt43P__x0myzEKO7JfzOSSv8sRTY1miBTjMV7aOIFltbceGkygTgXUCYoCUo18nJbipVvQ1QE4tLMJLyPsqUWKpdY4svdLG5afENqxfN9svTJhzRqETUHdLGzRfOh3AGCHa1anOzbT5TBY15xZuhXCuCERyD3FOf5syJd0I05dSojxuXu1hfxAl3qLqr18RWmz5YLcx_uZMAXedgjbeStxiPkkj2JuoJwxg-hXf-VWJ2fwMkdT4kBbQQiuz2YVkSnPG5PHTm";
@@ -51,7 +31,7 @@ const CATEGORIES = [
 
 // --- Helper Components & Renders (Moved outside for stability) ---
 
-const RenderHeader = ({ searchQuery, setSearchQuery, categories, selectedCategory, setSelectedCategory, isDark }) => (
+const RenderHeader = ({ searchQuery, setSearchQuery, categories, selectedCategory, setSelectedCategory, isDark, onFeaturedPress, featuredSeries }) => (
     <View className="bg-white dark:bg-background-dark pb-4 border-b border-slate-100 dark:border-slate-800">
         {/* Elegant Top Header */}
         <View className="px-6 py-4">
@@ -133,8 +113,12 @@ const RenderHeader = ({ searchQuery, setSearchQuery, categories, selectedCategor
                 snapToInterval={null}
                 contentContainerStyle={{ gap: 16, paddingLeft: 24, paddingRight: 24 }}
             >
-                {FEATURED_SERIES.map((series) => (
-                    <View key={series.id} className="relative w-64 aspect-[16/9] overflow-hidden rounded-[2rem] shadow-xl">
+                {featuredSeries.map((series) => (
+                    <TouchableOpacity
+                        key={series.id}
+                        className="relative w-64 aspect-[16/9] overflow-hidden rounded-[2rem] shadow-xl active:scale-95"
+                        onPress={() => onFeaturedPress(series)}
+                    >
                         <Image
                             source={{ uri: series.img }}
                             className="absolute inset-0 h-full w-full object-cover"
@@ -153,10 +137,10 @@ const RenderHeader = ({ searchQuery, setSearchQuery, categories, selectedCategor
                                 {series.desc}
                             </Text>
                         </View>
-                        <TouchableOpacity className="absolute right-3 top-3 h-10 w-10 items-center justify-center rounded-full bg-white shadow-xl active:scale-90">
+                        <View className="absolute right-3 top-3 h-10 w-10 items-center justify-center rounded-full bg-white shadow-xl">
                             <MaterialIcons name="play-arrow" size={24} className="text-primary ml-1" />
-                        </TouchableOpacity>
-                    </View>
+                        </View>
+                    </TouchableOpacity>
                 ))}
             </ScrollView>
         </View>
@@ -210,6 +194,7 @@ export default function MediaScreen() {
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedCategory, setSelectedCategory] = useState("All");
     const [videos, setVideos] = useState([]);
+    const [featuredSeries, setFeaturedSeries] = useState([]);
     const [categories, setCategories] = useState(CATEGORIES);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState("Videos");
@@ -258,6 +243,35 @@ export default function MediaScreen() {
                 console.error("Failed to load videos from Catalyst:", err);
                 setLoading(false);
             });
+
+        fetch(`${API_BASE}/feature-series`)
+            .then(res => res.json())
+            .then(response => {
+                const data = response.featureSeries || [];
+                const bucketUrl = response.bucketUrl || "https://biblevideos-development.zohostratus.in";
+                
+                const mappedFeatures = data.map(obj => {
+                    const parts = obj.key ? obj.key.split('/') : ['Other'];
+                    const folder = parts.length > 1 ? parts[0] : 'Other';
+                    const filename = parts[parts.length - 1].replace(/_/g, ' ').replace('.mp4', '');
+                    const constructedUrl = `${bucketUrl}/${encodeURI(obj.key)}`;
+                    
+                    return {
+                        id: obj.key,
+                        title: filename,
+                        length: (obj.size / (1024 * 1024)).toFixed(1) + " MB",
+                        category: folder,
+                        desc: "Featured Video Overview",
+                        img: DEFAULT_IMG,
+                        url: constructedUrl
+                    };
+                });
+                
+                setFeaturedSeries(mappedFeatures);
+            })
+            .catch(err => {
+                console.error("Failed to load featured series:", err);
+            });
     }, []);
 
     const filteredVideos = videos.filter((v) => {
@@ -276,6 +290,11 @@ export default function MediaScreen() {
                     selectedCategory={selectedCategory}
                     setSelectedCategory={setSelectedCategory}
                     isDark={isDark}
+                    onFeaturedPress={(item) => router.push({
+                        pathname: '/video/player',
+                        params: { ...item }
+                    })}
+                    featuredSeries={featuredSeries}
                 />
 
                 <View className="mx-6 mt-6 mb-2 flex-row items-center rounded-3xl bg-slate-100 p-1.5 dark:bg-slate-800/60">

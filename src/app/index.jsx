@@ -19,8 +19,8 @@ export default function WelcomeScreen() {
                         {/* Branding Section */}
                         <View className="flex-1 items-center justify-center">
                             <View className="mb-6 h-36 w-36 items-center justify-center rounded-[3rem] bg-white/10 backdrop-blur-3xl ring-1 ring-white/20 overflow-hidden">
-                                <Image 
-                                    source={require("../../assets/images/logo-gold.png")} 
+                                <Image
+                                    source={require("../../assets/images/logo-gold.png")}
                                     className="h-full w-full"
                                     resizeMode="contain"
                                 />
@@ -73,7 +73,7 @@ export default function WelcomeScreen() {
 
                         {/* Disclaimer/Footer */}
                         <Text className="mt-8 text-center text-[10px] font-medium uppercase tracking-widest text-white/40">
-                            v4.12.0 • Spiritual Nourishment
+                            v1.1.0 • Spiritual Nourishment
                         </Text>
                     </SafeAreaView>
                 </View>

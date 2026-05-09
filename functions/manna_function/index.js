@@ -71,6 +71,41 @@ app.get('/videos', async (req, res) => {
 	}
 });
 
+app.get('/feature-series', async (req, res) => {
+	try {
+		const catalystApp = catalyst.initialize(req);
+		const bucket = catalystApp.stratus().bucket("featureseries");
+
+		// get bucket details
+		const bucketDetail = await bucket.getDetails();
+
+		const options = {}; // Empty options to fetch all objects
+		const listobj = bucket.listIterableObjects(options);
+
+		const allObjects = [];
+		for await (const file of listobj) {
+			allObjects.push(file);
+		}
+
+		// console.log(allObjects);
+		res.json({
+			message: "Feature Series fetched successfully",
+			bucketUrl: bucketDetail.bucket_url,
+			featureSeries: allObjects.map(obj => ({
+				key: obj.keyDetails.key,
+				size: obj.keyDetails.size
+			}))
+		});
+
+	} catch (error) {
+		console.error("Stratus Error:", error);
+		res.status(500).json({
+			error: 'Failed to list videos',
+			details: error.message || String(error)
+		});
+	}
+});
+
 // signup(add a new user)
 app.post('/signup', async (req, res) => {
 	try {

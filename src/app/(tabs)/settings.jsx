@@ -1,13 +1,16 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import React from "react";
-import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { Image, ScrollView, Text, TouchableOpacity, View, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from 'expo-router';
 
 import { useColorScheme } from "nativewind";
 
 export default function SettingsScreen() {
+    const router = useRouter();
     const { colorScheme, setColorScheme } = useColorScheme();
     const isDarkMode = colorScheme === 'dark';
+    const ContactMail = "amazingspidey348@gmail.com";
 
     return (
         <SafeAreaView className="flex-1 bg-white dark:bg-background-dark">
@@ -74,7 +77,7 @@ export default function SettingsScreen() {
                                 </TouchableOpacity>
                             </View>
 
-                            <TouchableOpacity className="flex-row items-center justify-between p-5">
+                            {/* <TouchableOpacity className="flex-row items-center justify-between p-5">
                                 <View className="flex-row items-center gap-4">
                                     <View className="h-10 w-10 items-center justify-center rounded-2xl bg-white dark:bg-slate-800">
                                         <MaterialIcons name="translate" size={20} color={isDarkMode ? "#94a3b8" : "#64748b"} />
@@ -85,7 +88,7 @@ export default function SettingsScreen() {
                                     <Text className="text-sm font-bold text-slate-400">English</Text>
                                     <MaterialIcons name="chevron-right" size={20} color={isDarkMode ? "#475569" : "#cbd5e1"} />
                                 </View>
-                            </TouchableOpacity>
+                            </TouchableOpacity> */}
                         </View>
                     </View>
 
@@ -95,7 +98,10 @@ export default function SettingsScreen() {
                             Support & Legal
                         </Text>
                         <View className="overflow-hidden rounded-3xl border border-slate-50 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-900/20">
-                            <TouchableOpacity className="flex-row items-center justify-between p-5 border-b border-white dark:border-slate-800">
+                            <TouchableOpacity
+                                onPress={() => Alert.alert(`Help Center`, `Reach out to ${ContactMail} for queries`)}
+                                className="flex-row items-center justify-between p-5 border-b border-white dark:border-slate-800"
+                            >
                                 <View className="flex-row items-center gap-4">
                                     <View className="h-10 w-10 items-center justify-center rounded-2xl bg-white dark:bg-slate-800">
                                         <MaterialIcons name="help-outline" size={20} color={isDarkMode ? "#94a3b8" : "#64748b"} />
@@ -105,7 +111,10 @@ export default function SettingsScreen() {
                                 <MaterialIcons name="chevron-right" size={20} color={isDarkMode ? "#475569" : "#cbd5e1"} />
                             </TouchableOpacity>
 
-                            <TouchableOpacity className="flex-row items-center justify-between p-5">
+                            <TouchableOpacity
+                                onPress={() => router.push("/privacy-policy")}
+                                className="flex-row items-center justify-between p-5"
+                            >
                                 <View className="flex-row items-center gap-4">
                                     <View className="h-10 w-10 items-center justify-center rounded-2xl bg-white dark:bg-slate-800">
                                         <MaterialIcons name="policy" size={20} color={isDarkMode ? "#94a3b8" : "#64748b"} />
@@ -126,7 +135,7 @@ export default function SettingsScreen() {
 
                     <View className="items-center pt-4">
                         <Text className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-300">
-                            Manna • Version 4.12.0
+                            Manna • Version 1.1.0
                         </Text>
                     </View>
                 </View>

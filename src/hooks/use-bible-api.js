@@ -1,4 +1,5 @@
 import API_CONFIG from '../utils/API-key.js';
+import bibleStructure from '../utils/bible-structure.json';
 
 const BASE_URL = 'https://rest.api.bible/v1/';
 
@@ -67,8 +68,13 @@ export const getAllBibles = async () => {
  * Fetches available books for a specific bible.
  */
 export const getBibleBooks = async (bibleId) => {
-  // console.log("MARKER: getBibleBooks triggered for", bibleId);
   if (!bibleId) return [];
+  
+  // Use static data if available to save API calls
+  if (bibleStructure[bibleId]) {
+    return bibleStructure[bibleId];
+  }
+
   try {
     const response = await fetch(`${BASE_URL}bibles/${bibleId}/books`, {
       headers: {
@@ -84,17 +90,38 @@ export const getBibleBooks = async (bibleId) => {
     const result = await response.json();
     return result.data || [];
   } catch (error) {
-    console.error('Failed to fetch books:', error);
-    return [];
+    console.warn('Failed to fetch books (Network error):', error.message);
+    throw new Error("NETWORK_ERROR");
   }
+};
+
+/**
+ * Synchronously fetches available chapters from static data.
+ */
+export const getBibleChaptersSync = (bibleId, bookId) => {
+  if (bibleStructure[bibleId]) {
+    const book = bibleStructure[bibleId].find(b => b.id === bookId);
+    if (book && book.chapters) {
+      return book.chapters;
+    }
+  }
+  return null;
 };
 
 /**
  * Fetches available chapters for a specific book.
  */
 export const getBibleChapters = async (bibleId, bookId) => {
-  // console.log("MARKER: getBibleChapters triggered for", { bibleId, bookId });
   if (!bibleId || !bookId) return [];
+  
+  // Use static data if available to save API calls
+  if (bibleStructure[bibleId]) {
+    const book = bibleStructure[bibleId].find(b => b.id === bookId);
+    if (book && book.chapters) {
+      return book.chapters;
+    }
+  }
+
   try {
     const response = await fetch(`${BASE_URL}bibles/${bibleId}/books/${bookId}/chapters`, {
       headers: {
@@ -108,11 +135,10 @@ export const getBibleChapters = async (bibleId, bookId) => {
     }
 
     const result = await response.json();
-    // console.log("Chapters:", result.data);
     return result.data || [];
   } catch (error) {
-    console.error('Failed to fetch chapters:', error);
-    return [];
+    console.warn('Failed to fetch chapters (Network error):', error.message);
+    throw new Error("NETWORK_ERROR");
   }
 };
 
@@ -149,11 +175,10 @@ export const getBibleChapter = async (bibleId, chapterId) => {
       const safeContent = data.data.content.replace(/<a[^>]*>[\s\S]*?<\/a>/gi, '');
       return safeContent;
     }
-    // console.log(`--> Data empty for payload`, data);
     return null;
   } catch (error) {
-    console.error('--> Failed to fetch Bible chapter:', error);
-    return null;
+    console.warn('Failed to fetch Bible chapter (Network error):', error.message);
+    throw new Error("NETWORK_ERROR");
   }
 };
 

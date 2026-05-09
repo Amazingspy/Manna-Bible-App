@@ -4,10 +4,44 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useColorScheme } from "nativewind";
 import BibleHtmlRenderer from "../../components/bible-html-renderer";
-import { getAllBibles, getBibleBooks, getBibleChapters, getBibleChapter, searchBible } from "../../hooks/use-bible-api.js";
+import { getAllBibles, getBibleBooks, getBibleChapters, getBibleChaptersSync, getBibleChapter, searchBible } from "../../hooks/use-bible-api.js";
 import * as Clipboard from 'expo-clipboard';
 import { useSaved } from "../../context/SavedContext";
 import { parseBibleSearch } from "../../utils/bible-search-utils";
+import verseCounts from "../../utils/verse-counts.json";
+
+const SidebarBookItem = React.memo(({ book, isExpanded, isActiveBook, chapters, activeChapter, onExpand, onChapterSelect }) => {
+    return (
+        <View className="mb-3 px-2">
+            <TouchableOpacity
+                onPress={() => onExpand(book.id)}
+                className={`flex-row items-center justify-between p-4 rounded-2xl border ${isExpanded || isActiveBook ? "bg-primary border-primary" : "bg-slate-50 border-slate-100 dark:bg-slate-800 dark:border-slate-700"}`}
+            >
+                <Text className={`text-base font-bold ${isExpanded || isActiveBook ? "text-white" : "text-slate-700 dark:text-slate-200"}`}>{book.name}</Text>
+                <MaterialIcons name={isExpanded ? "expand-less" : "expand-more"} size={20} color={isExpanded || isActiveBook ? "#ffffff" : "#64748b"} />
+            </TouchableOpacity>
+
+            {isExpanded && (
+                <View className="flex-row flex-wrap gap-2 pt-3">
+                    {chapters.filter(c => c.number !== 'intro').map(chapter => {
+                        const cNum = chapter.number || chapter.id.split('.')[1] || '1';
+                        const isActive = activeChapter === chapter.id;
+                        return (
+                            <TouchableOpacity
+                                key={chapter.id}
+                                onPress={() => onChapterSelect(chapter.id)}
+                                style={{ width: 45, height: 45 }}
+                                className={`items-center justify-center rounded-2xl ${isActive ? "bg-primary shadow-sm" : "bg-slate-100 dark:bg-slate-800"} active:scale-95`}
+                            >
+                                <Text style={{ fontSize: 15 }} className={`font-black ${isActive ? "text-white" : "text-slate-700 dark:text-slate-300"}`}>{cNum}</Text>
+                            </TouchableOpacity>
+                        );
+                    })}
+                </View>
+            )}
+        </View>
+    );
+});
 
 export default function ReaderScreen() {
     const [allBibles, setAllBibles] = useState([]);
@@ -23,12 +57,18 @@ export default function ReaderScreen() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [expandedBookId, setExpandedBookId] = useState(null);
     const [sidebarChapters, setSidebarChapters] = useState([]);
-    const [isFetchingSidebarChapters, setIsFetchingSidebarChapters] = useState(false);
+    
+    // Verse Scrolling & Picker State
+    const scrollViewRef = React.useRef(null);
+    const versePositionsRef = React.useRef({});
+    const [targetScrollVerse, setTargetScrollVerse] = useState(null);
+    const [selectedSidebarChapter, setSelectedSidebarChapter] = useState(null);
 
     const [activeChapter, setActiveChapter] = useState("GEN.1");
     const [htmlContent, setHtmlContent] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isInitialLoading, setIsInitialLoading] = useState(true);
+    const [networkError, setNetworkError] = useState(false);
     const { colorScheme } = useColorScheme();
     const isDark = colorScheme === 'dark';
     const [highlights, setHighlights] = useState({});
@@ -171,6 +211,36 @@ export default function ReaderScreen() {
         fetchChapters();
     }, [selectedBibleId, activeChapter.split('.')[0]]);
 
+    // Clear verse positions when chapter changes so we don't jump to old positions
+    useEffect(() => {
+        versePositionsRef.current = {};
+    }, [activeChapter]);
+
+    // Handle smooth scrolling to target verse via ref polling
+    useEffect(() => {
+        if (!targetScrollVerse) return;
+
+        let attempts = 0;
+        const interval = setInterval(() => {
+            attempts++;
+            const yPos = versePositionsRef.current[targetScrollVerse];
+            
+            if (yPos !== undefined && scrollViewRef.current) {
+                // Estimate header offset height (approx 180px)
+                scrollViewRef.current.scrollTo({ y: yPos + 180, animated: true });
+                setSelectedVerseId(targetScrollVerse); // Highlight the chosen verse
+                setTargetScrollVerse(null); // Clear scroll target
+                clearInterval(interval);
+            } else if (attempts > 30) {
+                // Give up after 3 seconds (e.g. if the verse doesn't exist)
+                clearInterval(interval);
+                setTargetScrollVerse(null);
+            }
+        }, 100);
+
+        return () => clearInterval(interval);
+    }, [targetScrollVerse]);
+
     useEffect(() => {
         const fetchContent = async () => {
             if (!selectedBibleId || !activeChapter) return;
@@ -183,6 +253,10 @@ export default function ReaderScreen() {
                     setHtmlContent("<p class='p text-center opacity-50 italic py-10'>Word not available for this selection.</p>");
                 }
             } catch (err) {
+                if (err.message === "NETWORK_ERROR") {
+                    setNetworkError(true);
+                    setTimeout(() => setNetworkError(false), 4000);
+                }
                 setHtmlContent("<p class='p'>An error occurred while fetching the Bible content.</p>");
             } finally {
                 setIsLoading(false);
@@ -196,17 +270,53 @@ export default function ReaderScreen() {
             setExpandedBookId(null);
             return;
         }
-        setExpandedBookId(bookId);
-        setIsFetchingSidebarChapters(true);
-        try {
-            const chapters = await getBibleChapters(selectedBibleId, bookId);
-            setSidebarChapters(chapters);
-        } catch (err) {
-            console.error("Error fetching sidebar chapters:", err);
-        } finally {
-            setIsFetchingSidebarChapters(false);
+        
+        const staticChapters = getBibleChaptersSync(selectedBibleId, bookId);
+        
+        if (staticChapters) {
+            // Synchronous update completely eliminates any flash of empty content
+            setSidebarChapters(staticChapters);
+            setExpandedBookId(bookId);
+        } else {
+            // Fallback for non-static Bibles
+            setSidebarChapters([]);
+            setExpandedBookId(bookId);
+            try {
+                const chapters = await getBibleChapters(selectedBibleId, bookId);
+                setSidebarChapters(chapters);
+            } catch (err) {
+                if (err.message === "NETWORK_ERROR") {
+                    setNetworkError(true);
+                    setTimeout(() => setNetworkError(false), 4000);
+                } else {
+                    console.error("Error fetching sidebar chapters:", err);
+                }
+            }
         }
     };
+
+    // Stable callbacks for FlatList optimization
+    const handleExpandBookRef = React.useRef(handleExpandBook);
+    React.useEffect(() => { handleExpandBookRef.current = handleExpandBook; }, [handleExpandBook]);
+    const stableOnExpand = React.useCallback((id) => handleExpandBookRef.current(id), []);
+    
+    const handleChapterSelectRef = React.useRef(setSelectedSidebarChapter);
+    React.useEffect(() => { handleChapterSelectRef.current = setSelectedSidebarChapter; }, [setSelectedSidebarChapter]);
+    const stableOnChapterSelect = React.useCallback((id) => handleChapterSelectRef.current(id), []);
+
+    const renderBookItem = React.useCallback(({ item: book }) => {
+        return (
+            <SidebarBookItem 
+                book={book}
+                isExpanded={expandedBookId === book.id}
+                isActiveBook={activeChapter.startsWith(book.id + '.')}
+                chapters={expandedBookId === book.id ? sidebarChapters : []}
+                activeChapter={activeChapter}
+                onExpand={stableOnExpand}
+                onChapterSelect={stableOnChapterSelect}
+            />
+        );
+    }, [expandedBookId, activeChapter, sidebarChapters, stableOnExpand, stableOnChapterSelect]);
 
     const handlePreviousChapter = () => {
         const currentIndex = availableChapters.findIndex(c => c.id === activeChapter);
@@ -255,9 +365,14 @@ export default function ReaderScreen() {
                 const results = await searchBible(selectedBibleId, searchQuery);
                 setSearchResults(results);
             } catch (err) {
-                console.error("Search failed:", err);
+                if (err.message === "NETWORK_ERROR") {
+                    setNetworkError(true);
+                    setTimeout(() => setNetworkError(false), 4000);
+                } else {
+                    console.error("Error fetching content:", err);
+                }
             } finally {
-                setIsSearching(false);
+                setIsLoading(false);
             }
         }
     };
@@ -273,59 +388,83 @@ export default function ReaderScreen() {
 
     return (
         <SafeAreaView className="flex-1 bg-white dark:bg-background-dark">
-            <Modal visible={isSidebarOpen} animationType="slide" transparent={true} onRequestClose={() => setIsSidebarOpen(false)}>
+            {networkError && (
+                <View className="absolute top-12 left-4 right-4 z-50 bg-red-500 rounded-2xl p-4 shadow-xl flex-row items-center">
+                    <MaterialIcons name="wifi-off" size={24} color="white" />
+                    <Text className="text-white font-bold ml-3 flex-1 text-base">
+                        Oops! Looks like the Internet is Disconnected, Please connect to Internet.
+                    </Text>
+                </View>
+            )}
+
+            <Modal visible={isSidebarOpen} animationType="slide" transparent={true} onRequestClose={() => { setIsSidebarOpen(false); setSelectedSidebarChapter(null); }}>
                 <View className="flex-1 flex-row bg-slate-900/50">
                     <View style={{ width: '85%' }} className="max-w-sm h-full bg-white dark:bg-slate-900 shadow-2xl pt-12 pb-6 px-4">
                         <View className="flex-row items-center justify-between mb-6 px-2">
-                            <Text className="text-2xl font-black text-primary dark:text-white">Books</Text>
-                            <TouchableOpacity onPress={() => setIsSidebarOpen(false)} className="h-10 w-10 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800">
+                            {selectedSidebarChapter ? (
+                                <View className="flex-row items-center gap-3">
+                                    <TouchableOpacity onPress={() => setSelectedSidebarChapter(null)}>
+                                        <MaterialIcons name="arrow-back" size={24} color={isDark ? 'white' : '#0f172a'} />
+                                    </TouchableOpacity>
+                                    <Text className="text-2xl font-black text-primary dark:text-white">
+                                        Verse
+                                    </Text>
+                                </View>
+                            ) : (
+                                <Text className="text-2xl font-black text-primary dark:text-white">Books</Text>
+                            )}
+                            <TouchableOpacity onPress={() => { setIsSidebarOpen(false); setSelectedSidebarChapter(null); }} className="h-10 w-10 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800">
                                 <MaterialIcons name="close" size={20} color={isDark ? 'white' : '#0f172a'} />
                             </TouchableOpacity>
                         </View>
-                        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
-                            {availableBooks.map(book => (
-                                <View key={book.id} className="mb-3 px-2">
-                                    <TouchableOpacity
-                                        onPress={() => handleExpandBook(book.id)}
-                                        className={`flex-row items-center justify-between p-4 rounded-2xl border ${expandedBookId === book.id || activeChapter.startsWith(book.id + '.') ? "bg-primary border-primary" : "bg-slate-50 border-slate-100 dark:bg-slate-800 dark:border-slate-700"}`}
-                                    >
-                                        <Text className={`text-base font-bold ${expandedBookId === book.id || activeChapter.startsWith(book.id + '.') ? "text-white" : "text-slate-700 dark:text-slate-200"}`}>{book.name}</Text>
-                                        <MaterialIcons name={expandedBookId === book.id ? "expand-less" : "expand-more"} size={20} color={expandedBookId === book.id || activeChapter.startsWith(book.id + '.') ? "#ffffff" : "#64748b"} />
-                                    </TouchableOpacity>
 
-                                    {expandedBookId === book.id && (
-                                        <View className="flex-row flex-wrap gap-2 pt-3">
-                                            {isFetchingSidebarChapters ? (
-                                                <View className="w-full flex-row items-center justify-center py-4">
-                                                    <ActivityIndicator size="small" color="#1a355b" />
-                                                    <Text className="ml-2 text-xs font-bold text-slate-400">Loading...</Text>
-                                                </View>
-                                            ) : (
-                                                sidebarChapters.filter(c => c.number !== 'intro').map(chapter => {
-                                                    const cNum = chapter.number || chapter.id.split('.')[1] || '1';
-                                                    const isActive = activeChapter === chapter.id;
-                                                    return (
-                                                        <TouchableOpacity
-                                                            key={chapter.id}
-                                                            onPress={() => {
-                                                                setActiveChapter(chapter.id);
-                                                                setIsSidebarOpen(false);
-                                                            }}
-                                                            style={{ width: 45, height: 45 }}
-                                                            className={`items-center justify-center rounded-2xl ${isActive ? "bg-primary shadow-sm" : "bg-slate-100 dark:bg-slate-800"}`}
-                                                        >
-                                                            <Text style={{ fontSize: 15 }} className={`font-black ${isActive ? "text-white" : "text-slate-700 dark:text-slate-300"}`}>{cNum}</Text>
-                                                        </TouchableOpacity>
-                                                    );
-                                                })
-                                            )}
-                                        </View>
-                                    )}
-                                </View>
-                            ))}
-                        </ScrollView>
+                        {selectedSidebarChapter ? (() => {
+                            const bookId = selectedSidebarChapter.split('.')[0];
+                            const chapterNumStr = selectedSidebarChapter.split('.')[1];
+                            const chapterIndex = chapterNumStr === 'intro' ? -1 : parseInt(chapterNumStr) - 1;
+                            
+                            // Get the exact number of verses for this specific chapter
+                            const vCount = (verseCounts[bookId] && chapterIndex >= 0 && verseCounts[bookId][chapterIndex]) 
+                                ? verseCounts[bookId][chapterIndex] 
+                                : 50; // Fallback to 50 if it's an intro or unknown
+
+                            return (
+                                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+                                    <View className="flex-row flex-wrap gap-2 px-2 pt-2">
+                                        {Array.from({ length: vCount }, (_, i) => i + 1).map(v => (
+                                            <TouchableOpacity
+                                                key={v}
+                                                onPress={() => {
+                                                    const fullChapterId = selectedSidebarChapter;
+                                                    const verseId = `${fullChapterId}.${v}`;
+                                                    setActiveChapter(fullChapterId);
+                                                    setTargetScrollVerse(verseId);
+                                                    setIsSidebarOpen(false);
+                                                    setSelectedSidebarChapter(null);
+                                                }}
+                                                style={{ width: 45, height: 45 }}
+                                                className="items-center justify-center rounded-2xl bg-slate-100 dark:bg-slate-800 active:scale-95"
+                                            >
+                                                <Text style={{ fontSize: 15 }} className="font-black text-slate-700 dark:text-slate-300">{v}</Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                </ScrollView>
+                            );
+                        })() : (
+                            <FlatList 
+                                data={availableBooks}
+                                keyExtractor={(book) => book.id}
+                                showsVerticalScrollIndicator={false} 
+                                contentContainerStyle={{ paddingBottom: 40 }}
+                                renderItem={renderBookItem}
+                                initialNumToRender={10}
+                                maxToRenderPerBatch={10}
+                                windowSize={5}
+                            />
+                        )}
                     </View>
-                    <TouchableOpacity className="flex-1" onPress={() => setIsSidebarOpen(false)} />
+                    <TouchableOpacity className="flex-1" onPress={() => { setIsSidebarOpen(false); setSelectedSidebarChapter(null); }} />
                 </View>
             </Modal>
 
@@ -430,7 +569,7 @@ export default function ReaderScreen() {
                 </View>
             )}
 
-            <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 120 }}>
+            <ScrollView ref={scrollViewRef} className="flex-1" contentContainerStyle={{ paddingBottom: 120 }}>
                 <View className="mx-auto w-full max-w-2xl px-6">
                     <View className="mt-6 mb-6 overflow-hidden rounded-[2rem] border border-slate-100 bg-slate-50 shadow-xl dark:border-slate-800 dark:bg-slate-900/40">
                         <View className="p-6">
@@ -505,6 +644,7 @@ export default function ReaderScreen() {
                                 chapterId={activeChapter}
                                 onVersePress={(vid) => setSelectedVerseId(prev => prev === vid ? null : vid)}
                                 onVerseLongPress={(vid) => setSelectedVerseId(vid)}
+                                onVerseLayout={(vId, yPos) => { versePositionsRef.current[vId] = yPos; }}
                             />
                         )}
 

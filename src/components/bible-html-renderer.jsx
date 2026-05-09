@@ -44,7 +44,8 @@ export default function BibleHtmlRenderer({
   selectedVerseId = null,
   chapterId = null,
   onVersePress,
-  onVerseLongPress
+  onVerseLongPress,
+  onVerseLayout
 }) {
   const { width } = useWindowDimensions();
   const alignment = isTamil ? 'left' : 'justify';
@@ -131,6 +132,11 @@ export default function BibleHtmlRenderer({
 
       return (
         <TouchableOpacity
+          onLayout={(event) => {
+            if (vId && onVerseLayout) {
+              onVerseLayout(vId, event.nativeEvent.layout.y);
+            }
+          }}
           onPress={() => vId && onVersePress && onVersePress(vId)}
           onLongPress={() => vId && onVerseLongPress && onVerseLongPress(vId)}
           activeOpacity={0.7}
