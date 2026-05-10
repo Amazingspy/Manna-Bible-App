@@ -74,12 +74,28 @@ app.get('/videos', async (req, res) => {
 app.get('/feature-series', async (req, res) => {
 	try {
 		const catalystApp = catalyst.initialize(req);
-		const bucket = catalystApp.stratus().bucket("featureseries");
+		const possibleNames = ["featureseries", "feature-series", "series", "featured", "featured_series"];
+		let bucket = null;
+		let bucketDetail = null;
+		let foundName = null;
 
-		// get bucket details
-		const bucketDetail = await bucket.getDetails();
+		for (const name of possibleNames) {
+			try {
+				const tempBucket = catalystApp.stratus().bucket(name);
+				bucketDetail = await tempBucket.getDetails();
+				bucket = tempBucket;
+				foundName = name;
+				break; // Found it!
+			} catch (e) {
+				continue; // Try next name
+			}
+		}
 
-		const options = {}; // Empty options to fetch all objects
+		if (!bucket) {
+			return res.status(404).json({ error: "Series bucket not found", tried: possibleNames });
+		}
+
+		const options = {};
 		const listobj = bucket.listIterableObjects(options);
 
 		const allObjects = [];
@@ -87,10 +103,10 @@ app.get('/feature-series', async (req, res) => {
 			allObjects.push(file);
 		}
 
-		// console.log(allObjects);
 		res.json({
 			message: "Feature Series fetched successfully",
 			bucketUrl: bucketDetail.bucket_url,
+			foundBucketName: foundName,
 			featureSeries: allObjects.map(obj => ({
 				key: obj.keyDetails.key,
 				size: obj.keyDetails.size
@@ -100,7 +116,7 @@ app.get('/feature-series', async (req, res) => {
 	} catch (error) {
 		console.error("Stratus Error:", error);
 		res.status(500).json({
-			error: 'Failed to list videos',
+			error: 'Failed to list series',
 			details: error.message || String(error)
 		});
 	}

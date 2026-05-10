@@ -6,24 +6,21 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useColorScheme } from "nativewind";
 import { useEvent } from "expo";
 import { useVideoPlayer, VideoView } from "expo-video";
-
-const API_BASE = 'https://manna-60059371341.development.catalystserverless.in/server/manna_function';
+import { db } from "../../utils/firebase";
+import { collection, query, onSnapshot, orderBy } from "firebase/firestore";
 
 
 
 
 // Generic fallback image
 const DEFAULT_IMG = "https://lh3.googleusercontent.com/aida-public/AB6AXuCCjkFgFt43P__x0myzEKO7JfzOSSv8sRTY1miBTjMV7aOIFltbceGkygTgXUCYoCUo18nJbipVvQ1QE4tLMJLyPsqUWKpdY4svdLG5afENqxfN9svTJhzRqETUHdLGzRfOh3AGCHa1anOzbT5TBY15xZuhXCuCERyD3FOf5syJd0I05dSojxuXu1hfxAl3qLqr18RWmz5YLcx_uZMAXedgjbeStxiPkkj2JuoJwxg-hXf-VWJ2fwMkdT4kBbQQiuz2YVkSnPG5PHTm";
+const BASE_URL = "https://manna-60059371341.development.catalystserverless.in/server/manna_function/";
 
 
 const CATEGORIES = [
     { id: "All", icon: "movie", title: "All" },
-    { id: "Torah", icon: "auto-stories", title: "Torah" },
-    { id: "History", icon: "history-edu", title: "History" },
-    { id: "Wisdom", icon: "psychology", title: "Wisdom" },
-    { id: "Prophets", icon: "campaign", title: "Prophets" },
-    { id: "Gospel", icon: "menu-book", title: "Gospels" },
-    { id: "Letters", icon: "mail", title: "Letters" }
+    { id: "Tamil", icon: "translate", title: "Tamil" },
+    { id: "English", icon: "language", title: "English" }
 ];
 
 
@@ -36,15 +33,15 @@ const RenderHeader = ({ searchQuery, setSearchQuery, categories, selectedCategor
         {/* Elegant Top Header */}
         <View className="px-6 py-4">
             <View className="flex-row items-center justify-between">
-                <TouchableOpacity className="h-10 w-10 items-center justify-center rounded-full active:bg-slate-100 dark:active:bg-white/5">
+                {/* <TouchableOpacity className="h-10 w-10 items-center justify-center rounded-full active:bg-slate-100 dark:active:bg-white/5">
                     <MaterialIcons name="menu" size={24} color={isDark ? "#f1f5f9" : "#0f172a"} />
-                </TouchableOpacity>
-                <Text className="text-xl font-black tracking-tighter text-primary dark:text-white">
+                </TouchableOpacity> */}
+                <Text className="text-xl font-black tracking-tighter text-primary dark:text-white text-center w-full">
                     Manna Media
                 </Text>
-                <TouchableOpacity className="h-10 w-10 items-center justify-center rounded-full bg-slate-100 dark:bg-white/5">
+                {/* <TouchableOpacity className="h-10 w-10 items-center justify-center rounded-full bg-slate-100 dark:bg-white/5">
                     <MaterialIcons name="account-circle" size={24} color={isDark ? "#94a3b8" : "#64748b"} />
-                </TouchableOpacity>
+                </TouchableOpacity> */}
             </View>
         </View>
 
@@ -200,83 +197,91 @@ export default function MediaScreen() {
     const [activeTab, setActiveTab] = useState("Videos");
 
     useEffect(() => {
-        setLoading(true);
-        fetch(`${API_BASE}/videos`)
-            .then(res => res.json())
-            .then(response => {
-                const data = response.videos || [];
-                const bucketUrl = response.bucketUrl || "https://biblevideos-development.zohostratus.in";
-                const uniqueCategories = new Set(["All"]);
-
-                const mappedVideos = data.map(obj => {
-                    const parts = obj.key ? obj.key.split('/') : ['Other'];
-                    const folder = parts.length > 1 ? parts[0] : 'Other';
-                    const filename = parts[parts.length - 1].replace(/_/g, ' ').replace('.mp4', '');
-
-                    if (folder !== "All" && folder !== "Other") {
-                        uniqueCategories.add(folder);
-                    }
-
-                    // Construct object URL explicitly using bucket URL + encoded key
-                    const constructedUrl = `${bucketUrl}/${encodeURI(obj.key)}`;
-
-                    return {
-                        id: obj.key,
-                        title: filename,
-                        length: (obj.size / (1024 * 1024)).toFixed(1) + " MB",
-                        category: folder,
-                        img: DEFAULT_IMG,
-                        url: constructedUrl
-                    };
-                });
-
-                setVideos(mappedVideos);
-
-                const dynamicCategories = Array.from(uniqueCategories).map(catName => {
-                    const existing = CATEGORIES.find(c => c.id === catName);
-                    return existing || { id: catName, icon: "folder", title: catName };
-                });
-                setCategories(dynamicCategories);
-                setLoading(false);
-            })
-            .catch(err => {
-                console.error("Failed to load videos from Catalyst:", err);
-                setLoading(false);
-            });
-
-        fetch(`${API_BASE}/feature-series`)
-            .then(res => res.json())
-            .then(response => {
-                const data = response.featureSeries || [];
-                const bucketUrl = response.bucketUrl || "https://biblevideos-development.zohostratus.in";
+        const fetchData = async () => {
+            setLoading(true);
+            try {
+                // --- Fetch Videos from Catalyst ---
+                const vRes = await fetch(`${BASE_URL}videos`);
+                const vJson = await vRes.json();
+                console.log("[Catalyst] Videos Response:", vJson);
                 
-                const mappedFeatures = data.map(obj => {
-                    const parts = obj.key ? obj.key.split('/') : ['Other'];
-                    const folder = parts.length > 1 ? parts[0] : 'Other';
-                    const filename = parts[parts.length - 1].replace(/_/g, ' ').replace('.mp4', '');
-                    const constructedUrl = `${bucketUrl}/${encodeURI(obj.key)}`;
-                    
-                    return {
-                        id: obj.key,
-                        title: filename,
-                        length: (obj.size / (1024 * 1024)).toFixed(1) + " MB",
-                        category: folder,
-                        desc: "Featured Video Overview",
-                        img: DEFAULT_IMG,
-                        url: constructedUrl
-                    };
-                });
+                if (vJson.videos) {
+                    let bucketUrl = vJson.bucketUrl;
+                    if (bucketUrl && !bucketUrl.endsWith('/')) bucketUrl += '/';
+
+                    const mappedVideos = vJson.videos.map((v, index) => {
+                        const fileName = v.key.split('/').pop();
+                        const cleanTitle = fileName.replace(/\.[^/.]+$/, "").replace(/_/g, " ");
+                        
+                        // Detect language from key path
+                        let lang = "Tamil"; // Default
+                        if (v.key.toLowerCase().includes('english/')) lang = "English";
+                        if (v.key.toLowerCase().includes('tamil/')) lang = "Tamil";
+
+                        const finalUrl = `${bucketUrl}${v.key}`;
+                        return {
+                            id: `video-${index}`,
+                            title: cleanTitle,
+                            url: finalUrl,
+                            category: lang,
+                            length: "Video",
+                            img: DEFAULT_IMG,
+                            desc: `Overview for ${cleanTitle}`,
+                            key: v.key
+                        };
+                    });
+                    setVideos(mappedVideos);
+                }
+
+                // --- Fetch Featured Series from Catalyst ---
+                const fRes = await fetch(`${BASE_URL}feature-series`);
+                const fJson = await fRes.json();
                 
-                setFeaturedSeries(mappedFeatures);
-            })
-            .catch(err => {
-                console.error("Failed to load featured series:", err);
-            });
+                if (fJson.featureSeries) {
+                    let bucketUrl = fJson.bucketUrl;
+                    if (bucketUrl && !bucketUrl.endsWith('/')) bucketUrl += '/';
+
+                    const mappedSeries = fJson.featureSeries.map((s, index) => {
+                        const fileName = s.key.split('/').pop();
+                        const cleanTitle = fileName.replace(/\.[^/.]+$/, "").replace(/_/g, " ");
+                        
+                        let lang = "Tamil"; // Default
+                        if (s.key.toLowerCase().includes('english/')) lang = "English";
+                        if (s.key.toLowerCase().includes('tamil/')) lang = "Tamil";
+
+                        const finalUrl = `${bucketUrl}${s.key}`;
+                        return {
+                            id: `series-${index}`,
+                            title: cleanTitle,
+                            img: DEFAULT_IMG,
+                            desc: `Series on ${cleanTitle}`,
+                            url: finalUrl,
+                            category: lang,
+                            length: "Series",
+                            key: s.key
+                        };
+                    });
+                    setFeaturedSeries(mappedSeries);
+                }
+            } catch (err) {
+                console.error("Catalyst Fetch Error:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
     }, []);
 
     const filteredVideos = videos.filter((v) => {
         const matchesCategory = selectedCategory === "All" || v.category === selectedCategory;
         const matchesSearch = v.title.toLowerCase().includes(searchQuery.toLowerCase());
+        return matchesCategory && matchesSearch;
+    });
+
+    const filteredSeries = featuredSeries.filter((s) => {
+        const matchesCategory = selectedCategory === "All" || s.category === selectedCategory;
+        const matchesSearch = s.title.toLowerCase().includes(searchQuery.toLowerCase());
         return matchesCategory && matchesSearch;
     });
 
@@ -290,10 +295,17 @@ export default function MediaScreen() {
                     selectedCategory={selectedCategory}
                     setSelectedCategory={setSelectedCategory}
                     isDark={isDark}
-                    onFeaturedPress={(item) => router.push({
-                        pathname: '/video/player',
-                        params: { ...item }
-                    })}
+                    onFeaturedPress={(item) => {
+                        console.log("[Media] Featured Series Pressed:", item);
+                        router.push({
+                            pathname: '/video/player',
+                            params: { 
+                                ...item, 
+                                url: encodeURIComponent(item.url),
+                                description: item.desc 
+                            }
+                        });
+                    }}
                     featuredSeries={featuredSeries}
                 />
 
@@ -336,7 +348,11 @@ export default function MediaScreen() {
                                 item={item}
                                 onPress={() => router.push({
                                     pathname: '/video/player',
-                                    params: { ...item }
+                                    params: { 
+                                        ...item, 
+                                        url: encodeURIComponent(item.url),
+                                        description: item.desc 
+                                    }
                                 })}
                             />
                         )}

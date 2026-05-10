@@ -5,30 +5,66 @@ import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
+import * as WebBrowser from 'expo-web-browser';
+import * as Google from 'expo-auth-session/providers/google';
+import CustomAlert from '../components/CustomAlert';
+
+WebBrowser.maybeCompleteAuthSession();
 
 export default function SignupScreen() {
-    const { authenticateWithJwt } = useAuth();
+    const { signUp, signInWithGoogleCredential } = useAuth();
     const [email, setEmail] = useState('');
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+    const [alertConfig, setAlertConfig] = useState({ visible: false, title: '', message: '' });
+
+    const [request, response, promptAsync] = Google.useAuthRequest({
+        webClientId: '558492053164-cr196kts60lqgh2fd88g97hrsol44ubk.apps.googleusercontent.com',
+        androidClientId: '558492053164-cr196kts60lqgh2fd88g97hrsol44ubk.apps.googleusercontent.com',
+    });
+
+    React.useEffect(() => {
+        if (response?.type === 'success') {
+            const { id_token } = response.params;
+            handleGoogleSignIn(id_token);
+        }
+    }, [response]);
+
+    const handleGoogleSignIn = async (idToken) => {
+        setLoading(true);
+        try {
+            await signInWithGoogleCredential(idToken);
+            router.replace('/(tabs)');
+        } catch (error) {
+            setAlertConfig({
+                visible: true,
+                title: "Sign Up Failed",
+                message: error.message.replace('Firebase: ', '').replace('Error (auth/', '').replace(').', '')
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleSignup = async () => {
-        if (!email || !firstName) {
+        if (!email || !firstName || !password) {
             Alert.alert("Input Error", "Please fill in all required fields.");
             return;
         }
 
         setLoading(true);
         try {
-            // Using the new centralized JWT authentication helper
-            await authenticateWithJwt(email, firstName, lastName);
+            await signUp(email, password, firstName, lastName);
             router.replace('/(tabs)');
         } catch (error) {
-            console.error("Signup Error:", error);
-            Alert.alert("Signup Failed", error.message);
+            setAlertConfig({
+                visible: true,
+                title: "Sign Up Failed",
+                message: error.message.replace('Firebase: ', '').replace('Error (auth/', '').replace(').', '')
+            });
         } finally {
             setLoading(false);
         }
@@ -125,6 +161,16 @@ export default function SignupScreen() {
                                                 <Text className="text-slate-900 text-lg font-bold tracking-tight uppercase">Get Started</Text>
                                             )}
                                         </TouchableOpacity>
+
+                                        {/* Google Signup Button */}
+                                        <TouchableOpacity
+                                            onPress={() => promptAsync()}
+                                            disabled={!request || loading}
+                                            className={`h-16 w-full flex-row items-center justify-center rounded-2xl border border-white/20 bg-white/5 active:bg-white/10 ${(!request || loading) ? 'opacity-50' : ''}`}
+                                        >
+                                            <Ionicons name="logo-google" size={20} color="white" className="mr-3" />
+                                            <Text className="text-white text-base font-bold tracking-tight ml-2">Continue with Google</Text>
+                                        </TouchableOpacity>
                                     </View>
                                 </View>
 
@@ -140,6 +186,13 @@ export default function SignupScreen() {
                     </SafeAreaView>
                 </View>
             </ImageBackground>
+
+            <CustomAlert 
+                visible={alertConfig.visible}
+                title={alertConfig.title}
+                message={alertConfig.message}
+                onClose={() => setAlertConfig({ ...alertConfig, visible: false })}
+            />
         </View>
     );
 }

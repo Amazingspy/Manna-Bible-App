@@ -132,7 +132,9 @@ export default function VideoPlaybackScreen() {
                         <View className="bg-slate-50 dark:bg-white/5 p-4 rounded-2xl border border-slate-100 dark:border-white/5 flex-row items-center justify-between">
                             <View className="flex-row items-center justify-center w-full">
                                 <MaterialIcons name="menu-book" size={20} color={isDark ? "#f97316" : "#0f172a"} />
-                                <Text className="ml-3 text-base font-bold text-slate-900 dark:text-white">{title.split(':')[0]} 1 - {length.includes('MB') ? '50' : 'End'}</Text>
+                                <Text className="ml-3 text-base font-bold text-slate-900 dark:text-white">
+                                    {(title || "Scripture").split(':')[0]} 1 - {length?.includes('MB') ? '50' : 'End'}
+                                </Text>
                             </View>
                             {/* <TouchableOpacity>
                                 <MaterialIcons name="chevron-right" size={24} className="text-slate-300" />

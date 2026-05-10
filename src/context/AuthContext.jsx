@@ -1,5 +1,15 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { 
+    onAuthStateChanged, 
+    signInWithEmailAndPassword, 
+    createUserWithEmailAndPassword, 
+    signOut,
+    updateProfile,
+    GoogleAuthProvider,
+    signInWithCredential
+} from 'firebase/auth';
+import { auth } from '../utils/firebase';
 
 const AuthContext = createContext();
 
@@ -8,98 +18,114 @@ export const AuthProvider = ({ children }) => {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        loadStorageData();
-    }, []);
-
-    const loadStorageData = async () => {
-        try {
-            // Check if AsyncStorage is available to prevent crash
-            if (AsyncStorage) {
-                const authDataSerialized = await AsyncStorage.getItem('@MannaAuth');
-                if (authDataSerialized) {
-                    const _authData = JSON.parse(authDataSerialized);
-                    setUser(_authData);
+        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+            if (firebaseUser) {
+                // User is signed in
+                const userData = {
+                    uid: firebaseUser.uid,
+                    email: firebaseUser.email,
+                    displayName: firebaseUser.displayName,
+                    photoURL: firebaseUser.photoURL,
+                };
+                setUser(userData);
+                try {
+                    await AsyncStorage.setItem('@MannaAuth', JSON.stringify(userData));
+                } catch (e) {
+                    console.warn("AsyncStorage error", e);
+                }
+            } else {
+                // User is signed out
+                setUser(null);
+                try {
+                    await AsyncStorage.removeItem('@MannaAuth');
+                } catch (e) {
+                    console.warn("AsyncStorage error", e);
                 }
             }
-        } catch (error) {
-            console.warn('AsyncStorage is not available. Using in-memory state.', error);
-        } finally {
             setIsLoading(false);
-        }
-    };
+        });
 
-    const login = async (userData) => {
-        setUser(userData);
-        try {
-            if (AsyncStorage) {
-                await AsyncStorage.setItem('@MannaAuth', JSON.stringify(userData));
-            }
-        } catch (error) {
-            console.warn('Failed to persist auth data', error);
-        }
-    };
+        return () => unsubscribe();
+    }, []);
 
-    /**
-     * Authenticates with Catalyst using a JWT token generated from the backend.
-     * This mimics the catalyst.auth.signinWithJwt flow.
-     */
-    const authenticateWithJwt = async (email, firstName, lastName) => {
+    const signUp = async (email, password, firstName, lastName) => {
         try {
-            const response = await fetch('https://manna-60059371341.development.catalystserverless.in/server/manna_function/auth/generate-token', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    email, 
-                    first_name: firstName, 
-                    last_name: lastName 
-                })
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            const fullName = `${firstName} ${lastName || ''}`.trim();
+            
+            await updateProfile(userCredential.user, {
+                displayName: fullName
             });
 
-            const responseText = await response.text();
-            let data;
-            try {
-                data = JSON.parse(responseText);
-            } catch (e) {
-                console.error("Backend returned non-JSON response:", responseText);
-                throw new Error("Server returned an invalid response. Please check if the function is deployed.");
-            }
-
-            if (!response.ok) {
-                throw new Error(data.error || "Authentication failed");
-            }
-
-            if (data.jwt_token) {
-                const userData = {
-                    email,
-                    name: firstName ? `${firstName} ${lastName || ''}`.trim() : 'Manna User',
-                    token: data.jwt_token,
-                    clientId: data.client_id,
-                    scopes: data.scopes
-                };
-                await login(userData);
-                return userData;
-            } else {
-                throw new Error("No token received from backend");
-            }
+            const userData = {
+                uid: userCredential.user.uid,
+                email: userCredential.user.email,
+                displayName: fullName,
+            };
+            
+            setUser(userData);
+            return userData;
         } catch (error) {
-            console.error("JWT Auth Error:", error);
+            console.log("Firebase SignUp Error:", error.message);
+            throw error;
+        }
+    };
+
+    const signIn = async (email, password) => {
+        try {
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            const userData = {
+                uid: userCredential.user.uid,
+                email: userCredential.user.email,
+                displayName: userCredential.user.displayName,
+            };
+            setUser(userData);
+            return userData;
+        } catch (error) {
+            console.log("Firebase SignIn Error:", error.message);
             throw error;
         }
     };
 
     const logout = async () => {
-        setUser(null);
         try {
-            if (AsyncStorage) {
-                await AsyncStorage.removeItem('@MannaAuth');
-            }
+            await signOut(auth);
+            setUser(null);
+            await AsyncStorage.removeItem('@MannaAuth');
         } catch (error) {
-            console.warn('Failed to remove auth data', error);
+            console.log("Firebase SignOut Error:", error.message);
+            throw error;
+        }
+    };
+
+    const signInWithGoogleCredential = async (idToken) => {
+        try {
+            const credential = GoogleAuthProvider.credential(idToken);
+            const userCredential = await signInWithCredential(auth, credential);
+            const userData = {
+                uid: userCredential.user.uid,
+                email: userCredential.user.email,
+                displayName: userCredential.user.displayName,
+                photoURL: userCredential.user.photoURL,
+            };
+            setUser(userData);
+            return userData;
+        } catch (error) {
+            console.log("Firebase Google Auth Error:", error.message);
+            throw error;
         }
     };
 
     return (
-        <AuthContext.Provider value={{ user, isLoading, login, authenticateWithJwt, logout, isAuthenticated: !!user }}>
+        <AuthContext.Provider value={{ 
+            user, 
+            isLoading, 
+            signUp, 
+            signIn, 
+            signInWithGoogleCredential,
+            logout, 
+            isAuthenticated: !!user 
+        }}>
             {children}
         </AuthContext.Provider>
     );

@@ -14,21 +14,19 @@ function InitialLayout() {
     const router = useRouter();
 
     useEffect(() => {
-        // [BARRIER-FREE MISSION] 
-        // Commenting out authentication redirects to ensure the app is accessible to everyone without barriers.
-        /*
         if (isLoading) return;
 
-        const inAuthGroup = segments[0] === '(tabs)';
+        const isAuthScreen = segments[0] === 'login' || segments[0] === 'signup';
+        const isWelcomeScreen = segments.length === 0 || segments[0] === '';
+        const isPublicScreen = ['about', 'terms-and-conditions', 'privacy-policy'].includes(segments[0]);
 
-        if (!isAuthenticated && inAuthGroup) {
-            // Redirect to Welcome if not authenticated and trying to access tabs
+        if (!isAuthenticated && !isWelcomeScreen && !isAuthScreen && !isPublicScreen) {
+            // Redirect to Welcome if not authenticated and trying to access private screens
             router.replace('/');
-        } else if (isAuthenticated && (segments[0] === 'login' || segments[0] === 'signup' || segments[0] === undefined)) {
-            // Redirect to tabs if authenticated and on auth screens or root
+        } else if (isAuthenticated && (isWelcomeScreen || isAuthScreen)) {
+            // Redirect to tabs if authenticated and on welcome or auth screens
             router.replace('/(tabs)');
         }
-        */
     }, [isAuthenticated, isLoading, segments]);
 
     if (isLoading) {
@@ -44,6 +42,9 @@ function InitialLayout() {
             <Stack.Screen name="index" />
             <Stack.Screen name="login" options={{ presentation: 'modal' }} />
             <Stack.Screen name="signup" options={{ presentation: 'modal' }} />
+            <Stack.Screen name="about" options={{ presentation: 'modal' }} />
+            <Stack.Screen name="terms-and-conditions" options={{ presentation: 'modal' }} />
+            <Stack.Screen name="privacy-policy" options={{ presentation: 'modal' }} />
             <Stack.Screen name="(tabs)" />
         </Stack>
     );
@@ -53,11 +54,11 @@ export default function RootLayout() {
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <SafeAreaProvider>
-                <SavedProvider>
-                    <AuthProvider>
+                <AuthProvider>
+                    <SavedProvider>
                         <InitialLayout />
-                    </AuthProvider>
-                </SavedProvider>
+                    </SavedProvider>
+                </AuthProvider>
             </SafeAreaProvider>
         </GestureHandlerRootView>
     );

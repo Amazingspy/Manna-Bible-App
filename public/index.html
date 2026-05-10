@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manna - The Bible App</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #1B365C;
+            --accent: #FFD700;
+            --bg: #f8fafc;
+            --text: #1e293b;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            color: var(--text);
+            background: var(--bg);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        header {
+            background: var(--primary);
+            padding: 2rem;
+            text-align: center;
+            color: white;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+        .logo {
+            font-weight: 800;
+            font-size: 2.5rem;
+            letter-spacing: -0.05em;
+            color: var(--accent);
+        }
+        main {
+            flex: 1;
+            max-width: 800px;
+            margin: 3rem auto;
+            padding: 0 2rem;
+        }
+        h1 { font-size: 2.5rem; font-weight: 800; color: var(--primary); }
+        h2 { font-size: 1.5rem; margin-top: 2rem; color: var(--primary); }
+        .hero {
+            text-align: center;
+            padding: 4rem 2rem;
+            background: white;
+            border-radius: 2rem;
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+        }
+        .btn {
+            display: inline-block;
+            background: var(--accent);
+            color: var(--primary);
+            padding: 1rem 2rem;
+            border-radius: 1rem;
+            text-decoration: none;
+            font-weight: 600;
+            margin-top: 2rem;
+            transition: transform 0.2s;
+        }
+        .btn:hover { transform: scale(1.05); }
+        footer {
+            text-align: center;
+            padding: 2rem;
+            font-size: 0.875rem;
+            color: #64748b;
+        }
+        footer a { color: var(--primary); text-decoration: none; margin: 0 1rem; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">MANNA</div>
+        <p>Your Daily Bread, Digitally Delivered.</p>
+    </header>
+    <main>
+        <div class="hero">
+            <h1>Experience the Bible like never before.</h1>
+            <p>Manna is a premium spiritual companion designed to bring the Word of God into your daily life through beautiful typography, immersive video series, and personalized study tools.</p>
+            <a href="#" class="btn">Download the App</a>
+        </div>
+    </main>
+    <footer>
+        <p>&copy; 2026 Manna - The Bible Project. All rights reserved.</p>
+        <p>
+            <a href="privacy.html">Privacy Policy</a>
+            <a href="terms.html">Terms & Conditions</a>
+        </p>
+    </footer>
+</body>
+</html>

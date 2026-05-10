@@ -2,6 +2,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { useColorScheme } from 'nativewind';
+import { Platform } from 'react-native';
 
 export default function TabLayout() {
     const { colorScheme } = useColorScheme();
@@ -16,14 +17,9 @@ export default function TabLayout() {
                 tabBarStyle: {
                     backgroundColor: isDark ? '#0f172a' : '#ffffff',
                     borderTopColor: isDark ? '#1e293b' : '#e2e8f0',
-                    paddingBottom: 24,
-                    paddingTop: 12,
-                    height: 80,
-                    elevation: 10,
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: -4 },
-                    shadowOpacity: isDark ? 0.2 : 0.05,
-                    shadowRadius: 6,
+                    paddingBottom: Platform.OS === 'ios' ? 30 : 20,
+                    paddingTop: 10,
+                    height: Platform.OS === 'ios' ? 95 : 85,
                 },
                 tabBarLabelStyle: {
                     fontSize: 10,

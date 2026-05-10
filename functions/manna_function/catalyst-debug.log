@@ -1,0 +1,9 @@
+[debug] [2026-05-09T19:37:10.672Z] : 
+[debug] [2026-05-09T19:37:10.674Z] : ----------------------------------------------------------------------
+[debug] [2026-05-09T19:37:10.674Z] : Command:      C:\Program Files\nodejs\node.exe C:\Users\Lenovo\AppData\Roaming\npm\node_modules\zcatalyst-cli\lib\bin\catalyst.js deploy
+[debug] [2026-05-09T19:37:10.674Z] : CLI Version:  1.25.2
+[debug] [2026-05-09T19:37:10.674Z] : Platform:     win32
+[debug] [2026-05-09T19:37:10.674Z] : Node Version: v24.12.0
+[debug] [2026-05-09T19:37:10.674Z] : Time:         Sun May 10 2026 01:07:10 GMT+0530 (India Standard Time)
+[debug] [2026-05-09T19:37:10.674Z] : ----------------------------------------------------------------------
+[debug] [2026-05-09T19:37:10.674Z] : 
