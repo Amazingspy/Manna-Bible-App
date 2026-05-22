@@ -5,7 +5,10 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/logo-gold.png",
-    "scheme": "mannabibleapp",
+    "scheme": [
+      "mannabibleapp",
+      "com.googleusercontent.apps.558492053164-6vppcq9tng8qqbb3u9do3na6uqc4rim3"
+    ],
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon"
@@ -18,7 +21,20 @@
         "monochromeImage": "./assets/images/logo-gold.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.alex7358.MannaBibleApp"
+      "package": "com.alex7358.MannaBibleApp",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ],
+          "data": {
+            "scheme": "com.googleusercontent.apps.558492053164-6vppcq9tng8qqbb3u9do3na6uqc4rim3",
+            "path": "/oauth2redirect"
+          }
+        }
+      ]
     },
     "web": {
       "output": "static",

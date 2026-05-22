@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
+import { makeRedirectUri } from 'expo-auth-session';
 import CustomAlert from '../components/CustomAlert';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -21,10 +22,23 @@ export default function SignupScreen() {
     const [showPassword, setShowPassword] = useState(false);
     const [alertConfig, setAlertConfig] = useState({ visible: false, title: '', message: '' });
 
+    const redirectUri = makeRedirectUri({
+        scheme: Platform.select({
+            android: 'com.googleusercontent.apps.558492053164-6vppcq9tng8qqbb3u9do3na6uqc4rim3',
+            default: 'mannabibleapp',
+        }),
+        path: 'oauth2redirect',
+    });
+
     const [request, response, promptAsync] = Google.useAuthRequest({
         webClientId: '558492053164-cr196kts60lqgh2fd88g97hrsol44ubk.apps.googleusercontent.com',
-        androidClientId: '558492053164-cr196kts60lqgh2fd88g97hrsol44ubk.apps.googleusercontent.com',
+        androidClientId: '558492053164-6vppcq9tng8qqbb3u9do3na6uqc4rim3.apps.googleusercontent.com',
+        redirectUri,
     });
+
+    React.useEffect(() => {
+        console.log('Google Auth Redirect URI (Signup):', redirectUri);
+    }, []);
 
     React.useEffect(() => {
         if (response?.type === 'success') {
