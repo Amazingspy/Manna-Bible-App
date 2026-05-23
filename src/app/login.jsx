@@ -5,12 +5,12 @@ import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
-import * as WebBrowser from 'expo-web-browser';
-import * as Google from 'expo-auth-session/providers/google';
-import { makeRedirectUri } from 'expo-auth-session';
 import CustomAlert from '../components/CustomAlert';
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 
-WebBrowser.maybeCompleteAuthSession();
+GoogleSignin.configure({
+    webClientId: '558492053164-cr196kts60lqgh2fd88g97hrsol44ubk.apps.googleusercontent.com',
+});
 
 export default function LoginScreen() {
     const { signIn, signInWithGoogleCredential } = useAuth();
@@ -19,31 +19,6 @@ export default function LoginScreen() {
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [alertConfig, setAlertConfig] = useState({ visible: false, title: '', message: '' });
-
-    const redirectUri = makeRedirectUri({
-        scheme: Platform.select({
-            android: 'com.googleusercontent.apps.558492053164-6vppcq9tng8qqbb3u9do3na6uqc4rim3',
-            default: 'mannabibleapp',
-        }),
-        path: 'oauth2redirect',
-    });
-
-    const [request, response, promptAsync] = Google.useAuthRequest({
-        webClientId: '558492053164-cr196kts60lqgh2fd88g97hrsol44ubk.apps.googleusercontent.com',
-        androidClientId: '558492053164-6vppcq9tng8qqbb3u9do3na6uqc4rim3.apps.googleusercontent.com',
-        redirectUri,
-    });
-
-    React.useEffect(() => {
-        console.log('Google Auth Redirect URI (Login):', redirectUri);
-    }, []);
-
-    React.useEffect(() => {
-        if (response?.type === 'success') {
-            const { id_token } = response.params;
-            handleGoogleSignIn(id_token);
-        }
-    }, [response]);
 
     const handleGoogleSignIn = async (idToken) => {
         setLoading(true);
@@ -55,6 +30,32 @@ export default function LoginScreen() {
                 visible: true,
                 title: "Login Failed",
                 message: error.message.replace('Firebase: ', '').replace('Error (auth/', '').replace(').', '')
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleNativeGoogleSignIn = async () => {
+        setLoading(true);
+        try {
+            await GoogleSignin.hasPlayServices();
+            const userInfo = await GoogleSignin.signIn();
+            const idToken = userInfo.data?.idToken || userInfo.idToken;
+            if (!idToken) {
+                throw new Error("No ID Token received from Google Sign-In.");
+            }
+            await handleGoogleSignIn(idToken);
+        } catch (error) {
+            if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+                // User cancelled the login flow
+                return;
+            }
+            console.error("Google Sign-In Error details:", error);
+            setAlertConfig({
+                visible: true,
+                title: "Google Sign-In Error",
+                message: error.message || "An error occurred during Google Sign-In."
             });
         } finally {
             setLoading(false);
@@ -162,9 +163,9 @@ export default function LoginScreen() {
 
                                     {/* Google Sign In Button */}
                                     <TouchableOpacity
-                                        onPress={() => promptAsync()}
-                                        disabled={!request || loading}
-                                        className={`h-16 w-full flex-row items-center justify-center rounded-2xl border border-white/20 bg-white/5 active:bg-white/10 ${(!request || loading) ? 'opacity-50' : ''}`}
+                                        onPress={handleNativeGoogleSignIn}
+                                        disabled={loading}
+                                        className={`h-16 w-full flex-row items-center justify-center rounded-2xl border border-white/20 bg-white/5 active:bg-white/10 ${loading ? 'opacity-50' : ''}`}
                                     >
                                         <Ionicons name="logo-google" size={20} color="white" className="mr-3" />
                                         <Text className="text-white text-base font-bold tracking-tight ml-2">Continue with Google</Text>

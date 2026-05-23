@@ -10,6 +10,7 @@ import {
     signInWithCredential
 } from 'firebase/auth';
 import { auth } from '../utils/firebase';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 
 const AuthContext = createContext();
 
@@ -90,6 +91,14 @@ export const AuthProvider = ({ children }) => {
     const logout = async () => {
         try {
             await signOut(auth);
+            try {
+                const isSignedIn = await GoogleSignin.isSignedIn();
+                if (isSignedIn) {
+                    await GoogleSignin.signOut();
+                }
+            } catch (googleError) {
+                console.log("Google SignOut Error:", googleError.message);
+            }
             setUser(null);
             await AsyncStorage.removeItem('@MannaAuth');
         } catch (error) {

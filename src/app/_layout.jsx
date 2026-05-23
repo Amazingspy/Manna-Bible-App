@@ -21,8 +21,8 @@ function InitialLayout() {
         const isPublicScreen = ['about', 'terms-and-conditions', 'privacy-policy'].includes(segments[0]);
 
         if (!isAuthenticated && !isWelcomeScreen && !isAuthScreen && !isPublicScreen) {
-            // Redirect to Welcome if not authenticated and trying to access private screens
-            router.replace('/');
+            // Redirect to Login if not authenticated and trying to access private screens
+            router.replace('/login');
         } else if (isAuthenticated && (isWelcomeScreen || isAuthScreen)) {
             // Redirect to tabs if authenticated and on welcome or auth screens
             router.replace('/(tabs)');

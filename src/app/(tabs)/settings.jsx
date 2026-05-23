@@ -27,7 +27,7 @@ export default function SettingsScreen() {
                 setAlertConfig({ ...alertConfig, visible: false });
                 try {
                     await logout();
-                    router.replace('/');
+                    router.replace('/login');
                 } catch (error) {
                     setTimeout(() => {
                         setAlertConfig({
