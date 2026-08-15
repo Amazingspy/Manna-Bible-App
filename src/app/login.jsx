@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, ImageBackground, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, ImageBackground, KeyboardAvoidingView, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
@@ -64,7 +64,18 @@ export default function LoginScreen() {
 
     const handleLogin = async () => {
         if (!email || !password) {
-            Alert.alert("Input Error", "Please enter your email and password.");
+            setAlertConfig({ visible: true, title: "Missing Fields", message: "Please enter both your email and password to sign in." });
+            return;
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email.trim())) {
+            setAlertConfig({ visible: true, title: "Invalid Email", message: "Please enter a valid email address (e.g. user@example.com)." });
+            return;
+        }
+
+        if (password.length < 6) {
+            setAlertConfig({ visible: true, title: "Password Too Short", message: "Your password must be at least 6 characters long." });
             return;
         }
 

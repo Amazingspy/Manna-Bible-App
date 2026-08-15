@@ -196,13 +196,20 @@ export const searchBible = async (bibleId, query) => {
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      // HTTP error (400 bad query, 429 rate limit, etc.) — not a network outage, just return empty
+      console.warn('Search API returned error:', response.status);
+      return [];
     }
 
     const result = await response.json();
     return result.data?.verses || [];
   } catch (error) {
-    console.error('Search error:', error);
+    // TypeError = real network failure (offline, DNS, etc.)
+    if (error instanceof TypeError) {
+      console.warn('Search failed - network offline:', error.message);
+      throw new Error('NETWORK_ERROR');
+    }
+    console.error('Search unexpected error:', error.message);
     return [];
   }
 };

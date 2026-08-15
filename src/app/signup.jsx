@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, ImageBackground, KeyboardAvoidingView, Platform, Alert, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, ImageBackground, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
@@ -65,8 +65,29 @@ export default function SignupScreen() {
     };
 
     const handleSignup = async () => {
-        if (!email || !firstName || !password) {
-            Alert.alert("Input Error", "Please fill in all required fields.");
+        if (!firstName.trim()) {
+            setAlertConfig({ visible: true, title: "Missing Name", message: "Please enter your first name to create an account." });
+            return;
+        }
+
+        if (!email.trim()) {
+            setAlertConfig({ visible: true, title: "Missing Email", message: "Please enter your email address." });
+            return;
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email.trim())) {
+            setAlertConfig({ visible: true, title: "Invalid Email", message: "Please enter a valid email address (e.g. user@example.com)." });
+            return;
+        }
+
+        if (!password) {
+            setAlertConfig({ visible: true, title: "Missing Password", message: "Please create a password for your account." });
+            return;
+        }
+
+        if (password.length < 6) {
+            setAlertConfig({ visible: true, title: "Password Too Short", message: "Your password must be at least 6 characters long." });
             return;
         }
 

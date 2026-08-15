@@ -333,8 +333,9 @@ export default function ReaderScreen() {
     };
 
     const chapterNum = activeChapter.split('.')[1] || "1";
-    const isFirstChapter = availableChapters.findIndex(c => c.id === activeChapter) <= 0;
-    const isLastChapter = availableChapters.findIndex(c => c.id === activeChapter) === availableChapters.length - 1;
+    const activeChapterIndex = availableChapters.findIndex(c => c.id === activeChapter);
+    const isFirstChapter = activeChapterIndex <= 0;
+    const isLastChapter = activeChapterIndex === availableChapters.length - 1;
     const currentBible = availableBibles.find(b => b.id === selectedBibleId) || {};
 
     const getChapterText = () => {
@@ -353,13 +354,15 @@ export default function ReaderScreen() {
             setActiveChapter(fullChapterId);
             setIsSearchActive(false);
             setSearchQuery("");
-            // If verse is specified, we might want to highlight or scroll to it
+            setShowResults(false);
+            // If verse is specified, scroll to it
             if (parsed.verse) {
-                setSelectedVerseId(`${fullChapterId}.${parsed.verse}`);
+                setTargetScrollVerse(`${fullChapterId}.${parsed.verse}`);
             }
         } else {
             // Full text search
             setIsSearching(true);
+            setSearchResults([]);
             setShowResults(true);
             try {
                 const results = await searchBible(selectedBibleId, searchQuery);
@@ -369,10 +372,10 @@ export default function ReaderScreen() {
                     setNetworkError(true);
                     setTimeout(() => setNetworkError(false), 4000);
                 } else {
-                    console.error("Error fetching content:", err);
+                    console.error("Error fetching search results:", err);
                 }
             } finally {
-                setIsLoading(false);
+                setIsSearching(false);
             }
         }
     };
