@@ -1,5 +1,5 @@
-import API_CONFIG from '../utils/API-key.js';
-import bibleStructure from '../utils/bible-structure.json';
+import API_CONFIG from '../../utils/API-key.js';
+import bibleStructure from '../../utils/bible-structure.json';
 
 const BASE_URL = 'https://rest.api.bible/v1/';
 
@@ -69,7 +69,7 @@ export const getAllBibles = async () => {
  */
 export const getBibleBooks = async (bibleId) => {
   if (!bibleId) return [];
-  
+
   // Use static data if available to save API calls
   if (bibleStructure[bibleId]) {
     return bibleStructure[bibleId];
@@ -113,7 +113,7 @@ export const getBibleChaptersSync = (bibleId, bookId) => {
  */
 export const getBibleChapters = async (bibleId, bookId) => {
   if (!bibleId || !bookId) return [];
-  
+
   // Use static data if available to save API calls
   if (bibleStructure[bibleId]) {
     const book = bibleStructure[bibleId].find(b => b.id === bookId);

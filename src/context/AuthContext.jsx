@@ -92,8 +92,7 @@ export const AuthProvider = ({ children }) => {
         try {
             await signOut(auth);
             try {
-                const isSignedIn = await GoogleSignin.isSignedIn();
-                if (isSignedIn) {
+                if (GoogleSignin.hasPreviousSignIn()) {
                     await GoogleSignin.signOut();
                 }
             } catch (googleError) {

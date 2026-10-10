@@ -4,7 +4,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useColorScheme } from "nativewind";
 import BibleHtmlRenderer from "../../components/bible-html-renderer";
-import { getAllBibles, getBibleBooks, getBibleChapters, getBibleChaptersSync, getBibleChapter, searchBible } from "../../hooks/use-bible-api.js";
+import { getAllBibles, getBibleBooks, getBibleChapters, getBibleChaptersSync, getBibleChapter, searchBible } from "../../constants/hooks/use-bible-api.js";
 import * as Clipboard from 'expo-clipboard';
 import { useSaved } from "../../context/SavedContext";
 import { parseBibleSearch } from "../../utils/bible-search-utils";
@@ -57,7 +57,7 @@ export default function ReaderScreen() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [expandedBookId, setExpandedBookId] = useState(null);
     const [sidebarChapters, setSidebarChapters] = useState([]);
-    
+
     // Verse Scrolling & Picker State
     const scrollViewRef = React.useRef(null);
     const versePositionsRef = React.useRef({});
@@ -224,7 +224,7 @@ export default function ReaderScreen() {
         const interval = setInterval(() => {
             attempts++;
             const yPos = versePositionsRef.current[targetScrollVerse];
-            
+
             if (yPos !== undefined && scrollViewRef.current) {
                 // Estimate header offset height (approx 180px)
                 scrollViewRef.current.scrollTo({ y: yPos + 180, animated: true });
@@ -270,9 +270,9 @@ export default function ReaderScreen() {
             setExpandedBookId(null);
             return;
         }
-        
+
         const staticChapters = getBibleChaptersSync(selectedBibleId, bookId);
-        
+
         if (staticChapters) {
             // Synchronous update completely eliminates any flash of empty content
             setSidebarChapters(staticChapters);
@@ -299,14 +299,14 @@ export default function ReaderScreen() {
     const handleExpandBookRef = React.useRef(handleExpandBook);
     React.useEffect(() => { handleExpandBookRef.current = handleExpandBook; }, [handleExpandBook]);
     const stableOnExpand = React.useCallback((id) => handleExpandBookRef.current(id), []);
-    
+
     const handleChapterSelectRef = React.useRef(setSelectedSidebarChapter);
     React.useEffect(() => { handleChapterSelectRef.current = setSelectedSidebarChapter; }, [setSelectedSidebarChapter]);
     const stableOnChapterSelect = React.useCallback((id) => handleChapterSelectRef.current(id), []);
 
     const renderBookItem = React.useCallback(({ item: book }) => {
         return (
-            <SidebarBookItem 
+            <SidebarBookItem
                 book={book}
                 isExpanded={expandedBookId === book.id}
                 isActiveBook={activeChapter.startsWith(book.id + '.')}
@@ -345,7 +345,7 @@ export default function ReaderScreen() {
 
     const handleSearch = async () => {
         if (!searchQuery.trim()) return;
-        
+
         const parsed = parseBibleSearch(searchQuery);
         if (!parsed) return;
 
@@ -425,10 +425,10 @@ export default function ReaderScreen() {
                             const bookId = selectedSidebarChapter.split('.')[0];
                             const chapterNumStr = selectedSidebarChapter.split('.')[1];
                             const chapterIndex = chapterNumStr === 'intro' ? -1 : parseInt(chapterNumStr) - 1;
-                            
+
                             // Get the exact number of verses for this specific chapter
-                            const vCount = (verseCounts[bookId] && chapterIndex >= 0 && verseCounts[bookId][chapterIndex]) 
-                                ? verseCounts[bookId][chapterIndex] 
+                            const vCount = (verseCounts[bookId] && chapterIndex >= 0 && verseCounts[bookId][chapterIndex])
+                                ? verseCounts[bookId][chapterIndex]
                                 : 50; // Fallback to 50 if it's an intro or unknown
 
                             return (
@@ -455,10 +455,10 @@ export default function ReaderScreen() {
                                 </ScrollView>
                             );
                         })() : (
-                            <FlatList 
+                            <FlatList
                                 data={availableBooks}
                                 keyExtractor={(book) => book.id}
-                                showsVerticalScrollIndicator={false} 
+                                showsVerticalScrollIndicator={false}
                                 contentContainerStyle={{ paddingBottom: 40 }}
                                 renderItem={renderBookItem}
                                 initialNumToRender={10}
@@ -475,11 +475,11 @@ export default function ReaderScreen() {
                 <View className="flex-row items-center justify-between px-6 py-4">
                     {isSearchActive ? (
                         <View className="flex-1 flex-row items-center gap-2">
-                             <TouchableOpacity onPress={() => {
-                                 setIsSearchActive(false);
-                                 setSearchQuery("");
-                                 setShowResults(false);
-                             }}>
+                            <TouchableOpacity onPress={() => {
+                                setIsSearchActive(false);
+                                setSearchQuery("");
+                                setShowResults(false);
+                            }}>
                                 <MaterialIcons name="arrow-back" size={24} color={isDark ? '#f1f5f9' : '#0f172a'} />
                             </TouchableOpacity>
                             <TextInput
@@ -506,7 +506,7 @@ export default function ReaderScreen() {
                                 <Text className="text-xl font-black tracking-tighter text-primary dark:text-slate-100">Manna</Text>
                                 <Text className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Word of God</Text>
                             </View>
-                            <TouchableOpacity 
+                            <TouchableOpacity
                                 onPress={() => setIsSearchActive(true)}
                                 className="h-10 w-10 items-center justify-center rounded-full active:bg-slate-100 dark:active:bg-white/5"
                             >
@@ -522,13 +522,13 @@ export default function ReaderScreen() {
                 <View className="absolute top-[80px] left-0 right-0 bottom-0 z-50 bg-white dark:bg-background-dark px-6">
                     <View className="flex-row items-center justify-between py-4 border-b border-slate-100 dark:border-slate-800">
                         <Text className="text-sm font-black uppercase tracking-widest text-slate-400">
-                             {isSearching ? "Searching..." : `${searchResults.length} Results for "${searchQuery}"`}
+                            {isSearching ? "Searching..." : `${searchResults.length} Results for "${searchQuery}"`}
                         </Text>
-                         <TouchableOpacity onPress={() => setShowResults(false)}>
+                        <TouchableOpacity onPress={() => setShowResults(false)}>
                             <Text className="text-xs font-bold text-primary dark:text-accent uppercase">Close</Text>
                         </TouchableOpacity>
                     </View>
-                    
+
                     {isSearching ? (
                         <View className="flex-1 items-center justify-center">
                             <ActivityIndicator size="large" color="#1a355b" />
@@ -538,7 +538,7 @@ export default function ReaderScreen() {
                             data={searchResults}
                             keyExtractor={(item) => item.id}
                             renderItem={({ item }) => (
-                                <TouchableOpacity 
+                                <TouchableOpacity
                                     onPress={() => {
                                         const parts = item.id.split('.');
                                         setActiveChapter(`${parts[0]}.${parts[1]}`);

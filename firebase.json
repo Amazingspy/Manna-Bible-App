@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "site": "manna-delete-account",
     "public": "public",
     "ignore": [
       "firebase.json",

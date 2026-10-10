@@ -1,94 +1,228 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manna - The Bible App</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
+    <title>Delete Account - Manna</title>
+
     <style>
-        :root {
-            --primary: #1B365C;
-            --accent: #FFD700;
-            --bg: #f8fafc;
-            --text: #1e293b;
+        * {
+            box-sizing: border-box;
         }
+
         body {
-            font-family: 'Inter', sans-serif;
-            line-height: 1.6;
-            color: var(--text);
-            background: var(--bg);
             margin: 0;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
+            background: #ffffff;
+            color: #333333;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 16px;
+            line-height: 1.7;
         }
+
         header {
-            background: var(--primary);
-            padding: 2rem;
-            text-align: center;
-            color: white;
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            padding: 24px 20px;
+            border-bottom: 1px solid #eeeeee;
         }
-        .logo {
-            font-weight: 800;
-            font-size: 2.5rem;
-            letter-spacing: -0.05em;
-            color: var(--accent);
+
+        .header-inner {
+            max-width: 900px;
+            margin: 0 auto;
         }
+
+        .brand {
+            color: #222222;
+            font-size: 21px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-decoration: none;
+        }
+
         main {
-            flex: 1;
-            max-width: 800px;
-            margin: 3rem auto;
-            padding: 0 2rem;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 42px 20px 60px;
         }
-        h1 { font-size: 2.5rem; font-weight: 800; color: var(--primary); }
-        h2 { font-size: 1.5rem; margin-top: 2rem; color: var(--primary); }
-        .hero {
-            text-align: center;
-            padding: 4rem 2rem;
-            background: white;
-            border-radius: 2rem;
-            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+
+        h1 {
+            margin: 0 0 12px;
+            color: #222222;
+            font-size: 34px;
+            line-height: 1.3;
         }
-        .btn {
+
+        .updated {
+            margin-bottom: 30px;
+            color: #777777;
+            font-size: 14px;
+        }
+
+        p {
+            margin: 0 0 20px;
+        }
+
+        h2 {
+            margin: 32px 0 12px;
+            color: #222222;
+            font-size: 22px;
+            line-height: 1.4;
+        }
+
+        ul {
+            padding-left: 24px;
+            margin-bottom: 24px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        .delete-button {
             display: inline-block;
-            background: var(--accent);
-            color: var(--primary);
-            padding: 1rem 2rem;
-            border-radius: 1rem;
+            margin: 8px 0 20px;
+            padding: 12px 22px;
+            background: #b3261e;
+            color: #ffffff;
+            border-radius: 5px;
             text-decoration: none;
             font-weight: 600;
-            margin-top: 2rem;
-            transition: transform 0.2s;
+            transition: background 0.2s ease;
         }
-        .btn:hover { transform: scale(1.05); }
+
+        .delete-button:hover {
+            background: #8f1d17;
+        }
+
+        a {
+            color: #1967d2;
+        }
+
+        .delete-button {
+            color: #ffffff;
+        }
+
         footer {
-            text-align: center;
-            padding: 2rem;
-            font-size: 0.875rem;
-            color: #64748b;
+            border-top: 1px solid #eeeeee;
+            padding: 22px 20px;
+            color: #777777;
+            font-size: 14px;
         }
-        footer a { color: var(--primary); text-decoration: none; margin: 0 1rem; }
+
+        .footer-inner {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        footer p {
+            margin-bottom: 8px;
+        }
+
+        @media (max-width: 600px) {
+            header {
+                padding: 20px;
+            }
+
+            main {
+                padding: 30px 20px 45px;
+            }
+
+            h1 {
+                font-size: 28px;
+            }
+
+            h2 {
+                font-size: 20px;
+            }
+        }
     </style>
 </head>
+
 <body>
+
     <header>
-        <div class="logo">MANNA</div>
-        <p>Your Daily Bread, Digitally Delivered.</p>
-    </header>
-    <main>
-        <div class="hero">
-            <h1>Experience the Bible like never before.</h1>
-            <p>Manna is a premium spiritual companion designed to bring the Word of God into your daily life through beautiful typography, immersive video series, and personalized study tools.</p>
-            <a href="#" class="btn">Download the App</a>
+        <div class="header-inner">
+            <a class="brand" href="/">MANNA</a>
         </div>
-    </main>
-    <footer>
-        <p>&copy; 2026 Manna - The Bible Project. All rights reserved.</p>
-        <p>
-            <a href="privacy.html">Privacy Policy</a>
-            <a href="terms.html">Terms & Conditions</a>
+    </header>
+
+    <main>
+        <h1>Delete Account</h1>
+
+        <p class="updated">
+            Account and Data Deletion
         </p>
+
+        <p>
+            At Manna - The Bible Project, we respect your privacy
+            and your right to control your personal information.
+            You can request the deletion of your account and
+            associated personal data at any time.
+        </p>
+
+        <h2>What Happens When You Delete Your Account?</h2>
+
+        <p>
+            When your deletion request is processed, your account
+            and associated personal information stored by our
+            application will be deleted, subject to any applicable
+            legal or regulatory retention requirements.
+        </p>
+
+        <h2>Data That Will Be Deleted</h2>
+
+        <ul>
+            <li>Your account and authentication profile.</li>
+            <li>Your name, email address, and associated profile information.</li>
+            <li>Other personal records associated with your account.</li>
+        </ul>
+
+        <h2>How to Request Account Deletion</h2>
+
+        <p>
+            To request the deletion of your account and associated
+            data, click the button below. Please provide the email
+            address associated with your Manna account so that we
+            can verify your request.
+        </p>
+
+        <a class="delete-button" href="mailto:YOUR_SUPPORT_EMAIL?subject=Account%20and%20Data%20Deletion%20Request">
+            Request Account Deletion
+        </a>
+
+        <p>
+            We may contact you to verify your identity before
+            processing your request. We will inform you if any
+            information must be retained for legal reasons.
+        </p>
+
+        <h2>Need Help?</h2>
+
+        <p>
+            If you have questions about account deletion or your
+            personal data, contact us at
+            <a href="mailto:alex7358.cbcs@gmail.com">
+                alex7358.cbcs@gmail.com
+            </a>.
+        </p>
+
+        <p>
+            You can also review our
+            <a href="https://manna---the-bible-project.web.app/privacy.html">Privacy Policy</a>.
+        </p>
+    </main>
+
+    <footer>
+        <div class="footer-inner">
+            <p>
+                © 2026 Manna - The Bible Project.
+            </p>
+            <a href="/">Back to Home</a>
+        </div>
     </footer>
+
 </body>
+
 </html>
+```

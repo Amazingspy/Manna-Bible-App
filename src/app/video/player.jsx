@@ -72,7 +72,7 @@ export default function VideoPlaybackScreen() {
                 >
                     <MaterialIcons name="arrow-back" size={24} color={isDark ? "#f1f5f9" : "#0f172a"} />
                 </TouchableOpacity>
-                
+
                 <Text className="text-lg font-black tracking-tighter text-slate-900 dark:text-white">
                     Book Overview
                 </Text>
@@ -108,9 +108,9 @@ export default function VideoPlaybackScreen() {
                                 {category} • {length}
                             </Text>
                         </View>
-                        <TouchableOpacity className="h-12 w-12 items-center justify-center rounded-2xl bg-slate-50 dark:bg-white/5">
+                        {/* <TouchableOpacity className="h-12 w-12 items-center justify-center rounded-2xl bg-slate-50 dark:bg-white/5">
                             <MaterialIcons name="bookmark-outline" size={24} color={isDark ? "#94a3b8" : "#64748b"} />
-                        </TouchableOpacity>
+                        </TouchableOpacity> */}
                     </View>
 
                     <Text className="mt-6 text-base leading-relaxed text-slate-600 dark:text-slate-300 font-medium">
