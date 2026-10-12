@@ -73,7 +73,8 @@
       ],
       [
         "expo-localization"
-      ]
+      ],
+      "expo-build-properties"
     ],
     "experiments": {
       "typedRoutes": true,
