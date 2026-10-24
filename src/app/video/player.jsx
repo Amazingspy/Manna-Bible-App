@@ -19,7 +19,7 @@ export default function VideoPlaybackScreen() {
     const nextVideos = allVideosRaw ? JSON.parse(allVideosRaw) : [];
 
     // Log the constructed URL to show it's being used directly
-    console.log(`[Playback] Using Zoho URL: ${url}`);
+    // console.log(`[Playback] Using Zoho URL: ${url}`);
 
     const player = useVideoPlayer({
         uri: url,

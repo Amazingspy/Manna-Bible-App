@@ -6,6 +6,7 @@ import { useRouter } from "expo-router";
 import { Stack } from "expo-router";
 import WebView from "react-native-webview";
 import { genealogyHtml } from "../constants/genealogyHtml";
+import { logError } from "../utils/logger";
 
 export default function FamilyTreeScreen() {
     const router = useRouter();
@@ -21,7 +22,7 @@ export default function FamilyTreeScreen() {
                 setSelectedInfo({ name: data.name, desc: data.desc });
             }
         } catch (error) {
-            console.log('Error parsing message from WebView', error);
+            logError('FamilyTreeScreen', 'handleMessage → WebView JSON parse', error);
         }
     };
 

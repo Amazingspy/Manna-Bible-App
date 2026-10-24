@@ -11,6 +11,7 @@ import {
 } from 'firebase/auth';
 import { auth } from '../utils/firebase';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { logError } from '../utils/logger';
 
 const AuthContext = createContext();
 
@@ -67,7 +68,7 @@ export const AuthProvider = ({ children }) => {
             setUser(userData);
             return userData;
         } catch (error) {
-            console.log("Firebase SignUp Error:", error.message);
+            logError('AuthContext', 'signUp', error);
             throw error;
         }
     };
@@ -83,7 +84,7 @@ export const AuthProvider = ({ children }) => {
             setUser(userData);
             return userData;
         } catch (error) {
-            console.log("Firebase SignIn Error:", error.message);
+            logError('AuthContext', 'signIn', error);
             throw error;
         }
     };
@@ -96,12 +97,12 @@ export const AuthProvider = ({ children }) => {
                     await GoogleSignin.signOut();
                 }
             } catch (googleError) {
-                console.log("Google SignOut Error:", googleError.message);
+                logError('AuthContext', 'logout → GoogleSignin.signOut', googleError);
             }
             setUser(null);
             await AsyncStorage.removeItem('@MannaAuth');
         } catch (error) {
-            console.log("Firebase SignOut Error:", error.message);
+            logError('AuthContext', 'logout → Firebase signOut', error);
             throw error;
         }
     };
@@ -119,7 +120,12 @@ export const AuthProvider = ({ children }) => {
             setUser(userData);
             return userData;
         } catch (error) {
-            console.log("Firebase Google Auth Error:", error.message);
+            console.error('🔴 [Google Auth] Firebase signInWithCredential failed →', {
+                code: error?.code,
+                message: error?.message,
+                nativeErrorMessage: error?.nativeErrorMessage,
+                stack: error?.stack,
+            });
             throw error;
         }
     };

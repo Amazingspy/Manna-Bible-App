@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
 import CustomAlert from '../components/CustomAlert';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
+import { logError } from '../utils/logger';
 
 GoogleSignin.configure({
     webClientId: '558492053164-cr196kts60lqgh2fd88g97hrsol44ubk.apps.googleusercontent.com',
@@ -26,10 +27,11 @@ export default function LoginScreen() {
             await signInWithGoogleCredential(idToken);
             router.replace('/(tabs)');
         } catch (error) {
+            logError('LoginScreen', 'handleGoogleSignIn → signInWithGoogleCredential', error);
             setAlertConfig({
                 visible: true,
-                title: "Login Failed",
-                message: error.message.replace('Firebase: ', '').replace('Error (auth/', '').replace(').', '')
+                title: 'Login Failed',
+                message: error.message.replace('Firebase: ', '').replace('Error (auth/', '').replace(').', ''),
             });
         } finally {
             setLoading(false);
@@ -39,24 +41,55 @@ export default function LoginScreen() {
     const handleNativeGoogleSignIn = async () => {
         setLoading(true);
         try {
-            await GoogleSignin.hasPlayServices();
+            // Prompt user to update Play Services if outdated
+            await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+            console.log('[GoogleSignIn] Play Services OK');
+
             const userInfo = await GoogleSignin.signIn();
-            const idToken = userInfo.data?.idToken || userInfo.idToken;
+            console.log('[GoogleSignIn] userInfo received:', JSON.stringify(userInfo, null, 2));
+
+            const idToken = userInfo?.data?.idToken ?? userInfo?.idToken ?? null;
             if (!idToken) {
-                throw new Error("No ID Token received from Google Sign-In.");
+                throw new Error('No ID Token received from Google Sign-In.');
             }
+
             await handleGoogleSignIn(idToken);
         } catch (error) {
-            if (error.code === statusCodes.SIGN_IN_CANCELLED) {
-                // User cancelled the login flow
-                return;
-            }
-            console.error("Google Sign-In Error details:", error);
-            setAlertConfig({
-                visible: true,
-                title: "Google Sign-In Error",
-                message: error.message || "An error occurred during Google Sign-In."
+            console.error('⚡ [GoogleSignIn] Error →', {
+                code: error?.code,
+                message: error?.message,
+                nativeErrorMessage: error?.nativeErrorMessage,
+                rawError: error,
             });
+
+            if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+                // User deliberately cancelled – no alert needed
+                return;
+            } else if (error.code === statusCodes.IN_PROGRESS) {
+                setAlertConfig({
+                    visible: true,
+                    title: 'Sign-In In Progress',
+                    message: 'A Google sign-in is already in progress. Please wait.',
+                });
+            } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+                setAlertConfig({
+                    visible: true,
+                    title: 'Google Play Services Unavailable',
+                    message: 'Google Play Services is not available or outdated on this device. Please update it and try again.',
+                });
+            } else if (error.code === statusCodes.SIGN_IN_REQUIRED) {
+                setAlertConfig({
+                    visible: true,
+                    title: 'Sign-In Required',
+                    message: 'Please sign in with your Google account to continue.',
+                });
+            } else {
+                setAlertConfig({
+                    visible: true,
+                    title: 'Google Sign-In Error',
+                    message: `${error.message || 'An unexpected error occurred.'} (code: ${error.code ?? '-'})`,
+                });
+            }
         } finally {
             setLoading(false);
         }
@@ -84,10 +117,11 @@ export default function LoginScreen() {
             await signIn(email, password);
             router.replace('/(tabs)');
         } catch (error) {
+            logError('LoginScreen', 'handleLogin → signIn', error);
             setAlertConfig({
                 visible: true,
-                title: "Login Failed",
-                message: error.message.replace('Firebase: ', '').replace('Error (auth/', '').replace(').', '')
+                title: 'Login Failed',
+                message: error.message.replace('Firebase: ', '').replace('Error (auth/', '').replace(').', ''),
             });
         } finally {
             setLoading(false);

@@ -2,6 +2,7 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 import { db } from '../utils/firebase';
 import { collection, query, onSnapshot, doc, setDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 import { useAuth } from './AuthContext';
+import { logError } from '../utils/logger';
 
 const SavedContext = createContext();
 
@@ -39,7 +40,7 @@ export const SavedProvider = ({ children }) => {
             setSavedVerses(verses);
             setIsLoading(false);
         }, (error) => {
-            console.error("Firestore Saved Verses Error:", error);
+            logError('SavedContext', 'onSnapshot → saved_verses', error);
             setIsLoading(false);
         });
 
@@ -56,7 +57,7 @@ export const SavedProvider = ({ children }) => {
                 savedAt: Timestamp.now()
             });
         } catch (error) {
-            console.error("Error saving verse:", error);
+            logError('SavedContext', 'saveVerse', error);
         }
     };
 
@@ -67,7 +68,7 @@ export const SavedProvider = ({ children }) => {
             const verseRef = doc(db, "users", user.uid, "saved_verses", verseId);
             await deleteDoc(verseRef);
         } catch (error) {
-            console.error("Error removing verse:", error);
+            logError('SavedContext', 'removeVerse', error);
         }
     };
 

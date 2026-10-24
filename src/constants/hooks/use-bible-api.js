@@ -1,5 +1,6 @@
 import API_CONFIG from '../../utils/API-key.js';
 import bibleStructure from '../../utils/bible-structure.json';
+import { logError, logWarn } from '../../utils/logger';
 
 const BASE_URL = 'https://rest.api.bible/v1/';
 
@@ -10,7 +11,7 @@ const TARGET_VERSIONS = ['NIV', 'KJV', 'NLT', 'IRV'];
  */
 export const getAllBibles = async () => {
   if (!API_CONFIG['api-key']) {
-    console.error("CRITICAL: API KEY IS MISSING in API-key.js!");
+    logWarn('BibleAPI', 'getAllBibles', 'API KEY IS MISSING in API-key.js!');
   }
   try {
     const response = await fetch(`${BASE_URL}bibles`, {
@@ -59,7 +60,7 @@ export const getAllBibles = async () => {
 
     return finalSelection;
   } catch (error) {
-    console.error('Failed to fetch bibles:', error);
+    logError('BibleAPI', 'getAllBibles', error);
     return [];
   }
 };
@@ -90,8 +91,8 @@ export const getBibleBooks = async (bibleId) => {
     const result = await response.json();
     return result.data || [];
   } catch (error) {
-    console.warn('Failed to fetch books (Network error):', error.message);
-    throw new Error("NETWORK_ERROR");
+    logWarn('BibleAPI', 'getBibleBooks', error.message);
+    throw new Error('NETWORK_ERROR');
   }
 };
 
@@ -137,8 +138,8 @@ export const getBibleChapters = async (bibleId, bookId) => {
     const result = await response.json();
     return result.data || [];
   } catch (error) {
-    console.warn('Failed to fetch chapters (Network error):', error.message);
-    throw new Error("NETWORK_ERROR");
+    logWarn('BibleAPI', 'getBibleChapters', error.message);
+    throw new Error('NETWORK_ERROR');
   }
 };
 
@@ -177,8 +178,8 @@ export const getBibleChapter = async (bibleId, chapterId) => {
     }
     return null;
   } catch (error) {
-    console.warn('Failed to fetch Bible chapter (Network error):', error.message);
-    throw new Error("NETWORK_ERROR");
+    logWarn('BibleAPI', 'getBibleChapter', error.message);
+    throw new Error('NETWORK_ERROR');
   }
 };
 
@@ -204,12 +205,11 @@ export const searchBible = async (bibleId, query) => {
     const result = await response.json();
     return result.data?.verses || [];
   } catch (error) {
-    // TypeError = real network failure (offline, DNS, etc.)
     if (error instanceof TypeError) {
-      console.warn('Search failed - network offline:', error.message);
+      logWarn('BibleAPI', 'searchBible', 'Network offline', { message: error.message });
       throw new Error('NETWORK_ERROR');
     }
-    console.error('Search unexpected error:', error.message);
+    logError('BibleAPI', 'searchBible', error);
     return [];
   }
 };

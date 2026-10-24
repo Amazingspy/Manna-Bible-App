@@ -1,12 +1,74 @@
-import { MaterialIcons } from "@expo/vector-icons";
-import { useState } from "react";
-import { Image, ScrollView, Text, TouchableOpacity, View, Alert } from "react-native";
+import React, { useState, useRef, useEffect } from "react";
+import {
+    ScrollView,
+    View,
+    Text,
+    TouchableOpacity,
+    Animated,
+    Switch
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from 'expo-router';
-
+import { MaterialIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { useColorScheme } from "nativewind";
+
 import { useAuth } from "../../context/AuthContext";
 import CustomAlert from "../../components/CustomAlert";
+import { logError } from "../../utils/logger";
+
+function SettingRow({ icon, iconColor, title, value, onPress, isLast = false }) {
+    const scaleAnim = useRef(new Animated.Value(1)).current;
+
+    const handlePressIn = () => {
+        Animated.spring(scaleAnim, {
+            toValue: 0.98,
+            useNativeDriver: true,
+            speed: 50,
+        }).start();
+    };
+
+    const handlePressOut = () => {
+        Animated.spring(scaleAnim, {
+            toValue: 1,
+            useNativeDriver: true,
+            speed: 50,
+        }).start();
+    };
+
+    return (
+        <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+            <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={onPress}
+                onPressIn={handlePressIn}
+                onPressOut={handlePressOut}
+                className={`flex-row items-center justify-between p-4 ${!isLast ? "border-b border-slate-100 dark:border-slate-800/60" : ""
+                    }`}
+            >
+                <View className="flex-row items-center gap-3.5">
+                    <View
+                        style={{ backgroundColor: `${iconColor}15` }}
+                        className="h-10 w-10 items-center justify-center rounded-2xl"
+                    >
+                        <MaterialIcons name={icon} size={20} color={iconColor} />
+                    </View>
+                    <Text className="text-base font-semibold text-slate-800 dark:text-slate-100">
+                        {title}
+                    </Text>
+                </View>
+
+                <View className="flex-row items-center gap-2">
+                    {value && (
+                        <Text className="text-sm font-medium text-slate-400 dark:text-slate-500">
+                            {value}
+                        </Text>
+                    )}
+                    <MaterialIcons name="chevron-right" size={20} color="#94a3b8" />
+                </View>
+            </TouchableOpacity>
+        </Animated.View>
+    );
+}
 
 export default function SettingsScreen() {
     const router = useRouter();
@@ -14,9 +76,18 @@ export default function SettingsScreen() {
     const { user, logout } = useAuth();
     const [alertConfig, setAlertConfig] = useState({ visible: false, title: '', message: '' });
     const isDarkMode = colorScheme === 'dark';
-    const ContactMail = "amazingspidey348@gmail.com";
 
-    const handleLogout = async () => {
+    // Ref to guard async state updates after unmount during logout navigation
+    const isMounted = useRef(true);
+
+    useEffect(() => {
+        isMounted.current = true;
+        return () => {
+            isMounted.current = false;
+        };
+    }, []);
+
+    const handleLogout = () => {
         setAlertConfig({
             visible: true,
             title: "Sign Out",
@@ -24,52 +95,55 @@ export default function SettingsScreen() {
             type: 'confirm',
             confirmText: "Sign Out",
             onConfirm: async () => {
-                setAlertConfig({ ...alertConfig, visible: false });
+                if (isMounted.current) {
+                    setAlertConfig((prev) => ({ ...prev, visible: false }));
+                }
                 try {
                     await logout();
                     router.replace('/login');
                 } catch (error) {
-                    setTimeout(() => {
+                    logError('SettingsScreen', 'handleLogout → logout', error);
+                    if (isMounted.current) {
                         setAlertConfig({
                             visible: true,
-                            title: "Logout Failed",
-                            message: error.message,
+                            title: 'Logout Failed',
+                            message: `${error.message} (code: ${error.code ?? '-'})`,
                             type: 'error'
                         });
-                    }, 500);
+                    }
                 }
             }
         });
     };
 
     return (
-        <SafeAreaView className="flex-1 bg-white dark:bg-background-dark">
-            {/* Clean Header */}
-            <View className="border-b border-slate-100 bg-white/80 dark:border-slate-800 dark:bg-background-dark/80">
-                <View className="flex-row items-center justify-center px-6 py-4">
-                    <Text className="text-2xl font-black tracking-tighter text-slate-900 dark:text-white">
-                        Settings
-                    </Text>
-                    {/* <TouchableOpacity className="h-10 w-10 items-center justify-center rounded-full bg-slate-100 dark:bg-white/5">
-                        <MaterialIcons name="close" size={20} color={isDarkMode ? "white" : "#0f172a"} />
-                    </TouchableOpacity> */}
-                </View>
+        <SafeAreaView edges={['top']} className="flex-1 bg-slate-50/50 dark:bg-background-dark">
+            {/* Header */}
+            <View className="border-b border-slate-200/60 bg-white/90 px-6 py-4 dark:border-slate-800/80 dark:bg-slate-900/80">
+                <Text className="text-center text-2xl font-black tracking-tight text-slate-900 dark:text-white">
+                    Settings
+                </Text>
             </View>
 
-            <ScrollView className="flex-1 px-6">
+            <ScrollView
+                className="flex-1 px-5"
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: 120 }}
+            >
+                {/* Profile Card */}
                 {user && (
-                    <View className="mt-8 overflow-hidden rounded-[2.5rem] border border-slate-100 bg-white p-6 shadow-xl dark:border-slate-800 dark:bg-slate-900/40">
-                        <View className="flex-row items-center gap-5">
-                            <View className="h-20 w-20 items-center justify-center rounded-3xl bg-[#FFD700] shadow-sm">
-                                <Text className="text-3xl font-black text-slate-900">
-                                    {user.displayName ? user.displayName[0] : 'M'}
+                    <View className="mt-6 overflow-hidden rounded-[2rem] border border-slate-200/60 bg-white p-5 shadow-sm dark:border-slate-800/60 dark:bg-slate-900/60">
+                        <View className="flex-row items-center gap-4">
+                            <View className="h-16 w-16 items-center justify-center rounded-2xl bg-amber-400/20 dark:bg-amber-400/10">
+                                <Text className="text-2xl font-black text-amber-600 dark:text-amber-400">
+                                    {user.displayName ? user.displayName[0].toUpperCase() : 'M'}
                                 </Text>
                             </View>
                             <View className="flex-1">
-                                <Text className="text-xl font-black tracking-tight text-slate-900 dark:text-white">
+                                <Text className="text-lg font-bold text-slate-900 dark:text-white">
                                     {user.displayName || 'Manna User'}
                                 </Text>
-                                <Text className="text-sm font-medium text-slate-400">
+                                <Text className="text-xs font-medium text-slate-400">
                                     {user.email}
                                 </Text>
                             </View>
@@ -77,110 +151,78 @@ export default function SettingsScreen() {
                     </View>
                 )}
 
-                {/* Settings Groups */}
-                <View className="mt-10 gap-8 pb-32">
-
-                    {/* Appearance Section */}
-                    <View>
-                        <Text className="mb-4 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-                            Appearance
-                        </Text>
-                        <View className="overflow-hidden rounded-3xl border border-slate-50 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-900/20">
-                            <View className="flex-row items-center justify-between p-5 border-b border-white dark:border-slate-800">
-                                <View className="flex-row items-center gap-4">
-                                    <View className="h-10 w-10 items-center justify-center rounded-2xl bg-white dark:bg-slate-800">
-                                        <MaterialIcons name="dark-mode" size={20} color="#0A84FF" />
-                                    </View>
-                                    <Text className="font-bold text-slate-700 dark:text-slate-200">Dark Mode</Text>
+                {/* Appearance Group */}
+                <View className="mt-8">
+                    <Text className="mb-2.5 ml-2 text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                        Appearance
+                    </Text>
+                    <View className="overflow-hidden rounded-3xl border border-slate-200/60 bg-white p-4 shadow-sm dark:border-slate-800/60 dark:bg-slate-900/60">
+                        <View className="flex-row items-center justify-between">
+                            <View className="flex-row items-center gap-3.5">
+                                <View className="h-10 w-10 items-center justify-center rounded-2xl bg-blue-500/10">
+                                    <MaterialIcons name="dark-mode" size={20} color="#3b82f6" />
                                 </View>
-                                <TouchableOpacity
-                                    activeOpacity={0.8}
-                                    onPress={() => setColorScheme(isDarkMode ? "light" : "dark")}
-                                    className={`h-7 w-12 rounded-full px-1 justify-center ${isDarkMode ? "bg-primary" : "bg-slate-200 dark:bg-slate-700"}`}
-                                >
-                                    <View className={`h-5 w-5 rounded-full bg-white shadow-sm ${isDarkMode ? "self-end" : "self-start"}`} />
-                                </TouchableOpacity>
+                                <Text className="text-base font-semibold text-slate-800 dark:text-slate-100">
+                                    Dark Mode
+                                </Text>
                             </View>
 
-                            {/* <TouchableOpacity className="flex-row items-center justify-between p-5">
-                                <View className="flex-row items-center gap-4">
-                                    <View className="h-10 w-10 items-center justify-center rounded-2xl bg-white dark:bg-slate-800">
-                                        <MaterialIcons name="translate" size={20} color={isDarkMode ? "#94a3b8" : "#64748b"} />
-                                    </View>
-                                    <Text className="font-bold text-slate-700 dark:text-slate-200">App Language</Text>
-                                </View>
-                                <View className="flex-row items-center gap-2">
-                                    <Text className="text-sm font-bold text-slate-400">English</Text>
-                                    <MaterialIcons name="chevron-right" size={20} color={isDarkMode ? "#475569" : "#cbd5e1"} />
-                                </View>
-                            </TouchableOpacity> */}
+                            <Switch
+                                value={isDarkMode}
+                                onValueChange={() => setColorScheme(isDarkMode ? "light" : "dark")}
+                                trackColor={{ false: "#e2e8f0", true: "#2563eb" }}
+                                thumbColor="#ffffff"
+                            />
                         </View>
-                    </View>
-
-                    {/* Support Section */}
-                    <View>
-                        <Text className="mb-4 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-                            Support & Legal
-                        </Text>
-                        <View className="overflow-hidden rounded-3xl border border-slate-50 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-900/20">
-
-                            <TouchableOpacity
-                                onPress={() => router.push("/about")}
-                                className="flex-row items-center justify-between p-5 border-b border-white dark:border-slate-800"
-                            >
-                                <View className="flex-row items-center gap-4">
-                                    <View className="h-10 w-10 items-center justify-center rounded-2xl bg-white dark:bg-slate-800">
-                                        <MaterialIcons name="info-outline" size={20} color={isDarkMode ? "#94a3b8" : "#64748b"} />
-                                    </View>
-                                    <Text className="font-bold text-slate-700 dark:text-slate-200">About App</Text>
-                                </View>
-                                <MaterialIcons name="chevron-right" size={20} color={isDarkMode ? "#475569" : "#cbd5e1"} />
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                                onPress={() => router.push("/terms-and-conditions")}
-                                className="flex-row items-center justify-between p-5 border-b border-white dark:border-slate-800"
-                            >
-                                <View className="flex-row items-center gap-4">
-                                    <View className="h-10 w-10 items-center justify-center rounded-2xl bg-white dark:bg-slate-800">
-                                        <MaterialIcons name="description" size={20} color={isDarkMode ? "#94a3b8" : "#64748b"} />
-                                    </View>
-                                    <Text className="font-bold text-slate-700 dark:text-slate-200">Terms & Conditions</Text>
-                                </View>
-                                <MaterialIcons name="chevron-right" size={20} color={isDarkMode ? "#475569" : "#cbd5e1"} />
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                                onPress={() => router.push("/privacy-policy")}
-                                className="flex-row items-center justify-between p-5"
-                            >
-                                <View className="flex-row items-center gap-4">
-                                    <View className="h-10 w-10 items-center justify-center rounded-2xl bg-white dark:bg-slate-800">
-                                        <MaterialIcons name="policy" size={20} color={isDarkMode ? "#94a3b8" : "#64748b"} />
-                                    </View>
-                                    <Text className="font-bold text-slate-700 dark:text-slate-200">Privacy Policy</Text>
-                                </View>
-                                <MaterialIcons name="chevron-right" size={20} color={isDarkMode ? "#475569" : "#cbd5e1"} />
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-
-                    {user && (
-                        <TouchableOpacity
-                            onPress={handleLogout}
-                            className="mt-4 flex-row h-16 w-full items-center justify-center rounded-2xl border border-red-50 bg-red-50/30 active:bg-red-50 dark:border-red-900/10 dark:bg-red-900/5"
-                        >
-                            <Text className="text-lg font-black tracking-tight text-red-500">Sign Out</Text>
-                        </TouchableOpacity>
-                    )}
-
-                    <View className="items-center pt-4">
-                        <Text className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-300">
-                            Manna • Version 1.1.0
-                        </Text>
                     </View>
                 </View>
 
+                {/* Support & Legal Group */}
+                <View className="mt-6">
+                    <Text className="mb-2.5 ml-2 text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                        Support & Legal
+                    </Text>
+                    <View className="overflow-hidden rounded-3xl border border-slate-200/60 bg-white shadow-sm dark:border-slate-800/60 dark:bg-slate-900/60">
+                        <SettingRow
+                            icon="info-outline"
+                            iconColor="#6366f1"
+                            title="About App"
+                            onPress={() => router.push("/about")}
+                        />
+                        <SettingRow
+                            icon="description"
+                            iconColor="#8b5cf6"
+                            title="Terms & Conditions"
+                            onPress={() => router.push("/terms-and-conditions")}
+                        />
+                        <SettingRow
+                            icon="policy"
+                            iconColor="#ec4899"
+                            title="Privacy Policy"
+                            isLast
+                            onPress={() => router.push("/privacy-policy")}
+                        />
+                    </View>
+                </View>
+
+                {/* Sign Out Button */}
+                {user && (
+                    <TouchableOpacity
+                        activeOpacity={0.8}
+                        onPress={handleLogout}
+                        className="mt-8 h-14 w-full flex-row items-center justify-center rounded-2xl border border-red-200/60 bg-red-500/10 active:bg-red-500/20 dark:border-red-900/30 dark:bg-red-900/20"
+                    >
+                        <MaterialIcons name="logout" size={20} color="#ef4444" style={{ marginRight: 8 }} />
+                        <Text className="text-base font-bold text-red-500">Sign Out</Text>
+                    </TouchableOpacity>
+                )}
+
+                {/* App Version Footer */}
+                <View className="items-center pt-8">
+                    <Text className="text-[10px] font-extrabold uppercase tracking-[0.25em] text-slate-300 dark:text-slate-600">
+                        Manna • Version 1.1.0
+                    </Text>
+                </View>
             </ScrollView>
 
             <CustomAlert
@@ -190,7 +232,11 @@ export default function SettingsScreen() {
                 type={alertConfig.type}
                 confirmText={alertConfig.confirmText}
                 onConfirm={alertConfig.onConfirm}
-                onClose={() => setAlertConfig({ ...alertConfig, visible: false })}
+                onClose={() => {
+                    if (isMounted.current) {
+                        setAlertConfig((prev) => ({ ...prev, visible: false }));
+                    }
+                }}
             />
         </SafeAreaView>
     );

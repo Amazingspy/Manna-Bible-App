@@ -1,5 +1,5 @@
-import React from 'react';
-import { useWindowDimensions, Text, TouchableOpacity, View } from 'react-native';
+import React, { useMemo, useCallback } from 'react';
+import { useWindowDimensions, Text, TouchableOpacity, View, StyleSheet, Platform } from 'react-native';
 import RenderHTML, { TNodeRenderer } from 'react-native-render-html';
 
 const classesStyles = {
@@ -23,18 +23,87 @@ const classesStyles = {
   r: { display: 'none' }, // Parallel references
 
   // Content block styling (Standardizing at 18px for better readability)
-  p: { fontSize: 18, lineHeight: 28, color: '#334155', marginBottom: 8, fontFamily: 'Inter', textAlign: 'justify' },
-  q1: { fontSize: 18, lineHeight: 28, paddingLeft: 24, fontStyle: 'italic', marginBottom: 4, textAlign: 'justify' },
-  q2: { fontSize: 18, lineHeight: 28, paddingLeft: 48, fontStyle: 'italic', marginBottom: 4, textAlign: 'justify' },
-  m: { fontSize: 18, lineHeight: 28, marginTop: 0, marginBottom: 8, textAlign: 'justify' },
+  p: { fontSize: 18, lineHeight: 28, color: '#334155', marginBottom: 8, fontFamily: 'Inter', textAlign: 'left' },
+  q1: { fontSize: 18, lineHeight: 28, paddingLeft: 24, fontStyle: 'italic', marginBottom: 4, textAlign: 'left' },
+  q2: { fontSize: 18, lineHeight: 28, paddingLeft: 48, fontStyle: 'italic', marginBottom: 4, textAlign: 'left' },
+  m: { fontSize: 18, lineHeight: 28, marginTop: 0, marginBottom: 8, textAlign: 'left' },
 
   // Meta tags
   b: { height: 0 }
 };
 
 const tagsStyles = {
-  p: { fontSize: 18, lineHeight: 28, marginTop: 0, marginBottom: 20, textAlign: 'justify' }
+  p: { fontSize: 18, lineHeight: 28, marginTop: 0, marginBottom: 20, textAlign: 'left' }
 };
+
+// Isolated pure memoized item to prevent full html tree re-renders when a verse is tapped
+const VerseBlock = React.memo(({
+  tnode,
+  vId,
+  isSelected,
+  hColor,
+  colorScheme,
+  alignment,
+  onVersePress,
+  onVerseLongPress,
+  onVerseLayout,
+  TDefaultRenderer
+}) => {
+  const handleLayout = useCallback((event) => {
+    if (vId && onVerseLayout) {
+      onVerseLayout(vId, event.nativeEvent.layout.y);
+    }
+  }, [vId, onVerseLayout]);
+
+  const handlePress = useCallback(() => {
+    if (vId && onVersePress) {
+      onVersePress(vId);
+    }
+  }, [vId, onVersePress]);
+
+  const handleLongPress = useCallback(() => {
+    if (vId && onVerseLongPress) {
+      onVerseLongPress(vId);
+    }
+  }, [vId, onVerseLongPress]);
+
+  let txtColor;
+  if (hColor) {
+    txtColor = '#334155';
+  } else {
+    txtColor = colorScheme === 'dark' ? '#ffffff' : '#334155';
+  }
+
+  return (
+    <TouchableOpacity
+      onLayout={handleLayout}
+      onPress={handlePress}
+      onLongPress={handleLongPress}
+      activeOpacity={0.7}
+      style={{
+        marginBottom: 2,
+        padding: 4,
+        backgroundColor: hColor || 'transparent',
+        borderRadius: 8,
+      }}
+    >
+      <View pointerEvents="none">
+        <Text style={{
+          fontSize: 18,
+          lineHeight: 28,
+          color: txtColor,
+          textAlign: alignment,
+          textDecorationLine: isSelected ? 'underline' : 'none',
+          fontWeight: isSelected ? 'bold' : 'normal',
+        }}>
+          {tnode.children.map((child, index) => (
+            <TNodeRenderer key={child.id || index} tnode={child} />
+          ))}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+});
 
 export default function BibleHtmlRenderer({
   html,
@@ -48,15 +117,13 @@ export default function BibleHtmlRenderer({
   onVerseLayout
 }) {
   const { width } = useWindowDimensions();
-  const alignment = isTamil ? 'left' : 'justify';
+  const alignment = isTamil ? 'left' : 'left';
 
-  // 1. Process HTML: Block Isolation
-  const processedHtml = React.useMemo(() => {
+  // 1. Process HTML: Preserve your exact original parsing algorithm, memoized efficiently
+  const processedHtml = useMemo(() => {
     if (!html) return '';
-    // Instead of stripping <p>, convert to <div> to keep classes (like s1, s2)
     const preserved = html.replace(/<p/g, '<div').replace(/<\/p>/g, '</div>');
 
-    // Use the passed chapterId or attempt to find it from ANY element that has it
     let baseId = chapterId;
     if (!baseId) {
       const allSids = preserved.match(/data-sid="([^"]+)"/g);
@@ -64,8 +131,8 @@ export default function BibleHtmlRenderer({
         for (const sidStr of allSids) {
           const match = sidStr.match(/"([^"]+)"/);
           if (match) {
-            const val = match[1]; // e.g. "GEN 1:1"
-            const parts = val.split(/[\s:]+/); // Split by space or colon
+            const val = match[1];
+            const parts = val.split(/[\s:]+/);
             if (parts.length >= 2) {
               baseId = `${parts[0]}.${parts[1]}`;
               break;
@@ -81,17 +148,14 @@ export default function BibleHtmlRenderer({
 
     parts.forEach((part, index) => {
       if (part.startsWith('<')) {
-        // Detect if this tag IS a header (based on class)
         const isHeader = part.includes('class="s') || part.includes('class="d') || part.startsWith('<div class="s') || part.startsWith('<div class="d');
         const isMeta = part.includes('class="c') || part.includes('class="b') || part.includes('class="r');
 
-        // If we hit a header or meta tag, close the current verse block
         if (isHeader || isMeta) {
           if (currentVerseNum) result += '</div>';
           currentVerseNum = null;
         }
 
-        // Detect Verse Marker
         if (part.includes('class="v"')) {
           const vMatch = parts[index + 1]?.match(/^\s*(\d+)/);
           if (vMatch) {
@@ -109,12 +173,11 @@ export default function BibleHtmlRenderer({
 
     if (currentVerseNum) result += '</div>';
     return result;
-  }, [html]);
+  }, [html, chapterId]);
 
-  // 2. Custom Renderers (Verse Blocks)
-  const renderers = {
+  // 2. Custom Renderers (Verse Blocks) memoized to avoid re-creation lag
+  const renderers = useMemo(() => ({
     div: (props) => {
-      // ONLY intercept our custom "vblock" - let other divs (headers) use default renderer
       if (!props.tnode.classes?.includes('vblock')) {
         return <props.TDefaultRenderer {...props} />;
       }
@@ -123,82 +186,58 @@ export default function BibleHtmlRenderer({
       const isSelected = vId && selectedVerseId === vId;
       const hColor = vId && highlights[vId];
 
-      let txtColor;
-      if (hColor) {
-        txtColor = '#334155';
-      } else {
-        txtColor = colorScheme === 'dark' ? '#ffffff' : '#334155';
-      }
-
       return (
-        <TouchableOpacity
-          onLayout={(event) => {
-            if (vId && onVerseLayout) {
-              onVerseLayout(vId, event.nativeEvent.layout.y);
-            }
-          }}
-          onPress={() => vId && onVersePress && onVersePress(vId)}
-          onLongPress={() => vId && onVerseLongPress && onVerseLongPress(vId)}
-          activeOpacity={0.7}
-          style={{
-            marginBottom: 2,
-            padding: 4, // Reduction for cleaner look
-            backgroundColor: hColor || 'transparent',
-            borderRadius: 8,
-          }}
-        >
-          <Text style={{
-            fontSize: 18, // Balanced size
-            lineHeight: 28, // Professional spacing
-            color: txtColor,
-            textAlign: alignment,
-            textDecorationLine: isSelected ? 'underline' : 'none',
-            fontWeight: isSelected ? 'bold' : 'normal',
-          }}>
-            {props.tnode.children.map((child, index) => (
-              <TNodeRenderer key={index} tnode={child} />
-            ))}
-          </Text>
-        </TouchableOpacity>
+        <VerseBlock
+          tnode={props.tnode}
+          vId={vId}
+          isSelected={isSelected}
+          hColor={hColor}
+          colorScheme={colorScheme}
+          alignment={alignment}
+          onVersePress={onVersePress}
+          onVerseLongPress={onVerseLongPress}
+          onVerseLayout={onVerseLayout}
+          TDefaultRenderer={props.TDefaultRenderer}
+        />
       );
     }
-  };
+  }), [selectedVerseId, highlights, colorScheme, alignment, onVersePress, onVerseLongPress, onVerseLayout]);
 
-  // 3. Theme Styles with Version-Specific Formatting
-  const themeClassesStyles = {
+  // 3. Theme Styles Memoized
+  const themeClassesStyles = useMemo(() => ({
     ...classesStyles,
-    // Main Section Headers
     s: { ...classesStyles.s, fontSize: isTamil ? 22 : 24, color: colorScheme === 'dark' ? '#f1f5f9' : '#1a355b' },
     s1: { ...classesStyles.s1, fontSize: isTamil ? 22 : 24, color: colorScheme === 'dark' ? '#f1f5f9' : '#1a355b' },
     s2: { ...classesStyles.s2, fontSize: isTamil ? 20 : 22, color: colorScheme === 'dark' ? '#f1f5f9' : '#1a355b' },
     s3: { ...classesStyles.s3, fontSize: isTamil ? 18 : 20, color: colorScheme === 'dark' ? '#f1f5f9' : '#1a355b' },
     d: { ...classesStyles.d, fontSize: isTamil ? 22 : 24, color: colorScheme === 'dark' ? '#f1f5f9' : '#1a355b' },
 
-    // Body text colors
     p: { ...classesStyles.p, color: colorScheme === 'dark' ? '#f8fafc' : '#334155', textAlign: alignment },
     q1: { ...classesStyles.q1, color: colorScheme === 'dark' ? '#f8fafc' : '#334155', textAlign: alignment },
     q2: { ...classesStyles.q2, color: colorScheme === 'dark' ? '#f8fafc' : '#334155', textAlign: alignment },
     m: { ...classesStyles.m, color: colorScheme === 'dark' ? '#f8fafc' : '#334155', textAlign: alignment },
     v: { ...classesStyles.v, color: colorScheme === 'dark' ? '#f97316' : '#1a355b' },
-  };
+  }), [colorScheme, isTamil, alignment]);
 
-  const themeTagsStyles = {
+  const themeTagsStyles = useMemo(() => ({
     ...tagsStyles,
     p: { ...tagsStyles.p, textAlign: alignment, color: colorScheme === 'dark' ? '#f8fafc' : '#334155' },
     div: { textAlign: alignment, color: colorScheme === 'dark' ? '#f8fafc' : '#334155' }
-  };
+  }), [colorScheme, alignment]);
+
+  const baseStyle = useMemo(() => ({
+    color: colorScheme === 'dark' ? '#f8fafc' : '#334155',
+    fontSize: 18,
+    lineHeight: 28,
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'Inter',
+    textAlign: alignment
+  }), [colorScheme, alignment]);
 
   return (
     <RenderHTML
       contentWidth={width}
       source={{ html: processedHtml }}
-      baseStyle={{
-        color: colorScheme === 'dark' ? '#f8fafc' : '#334155',
-        fontSize: 18,
-        lineHeight: 28,
-        fontFamily: 'Inter',
-        textAlign: alignment
-      }}
+      baseStyle={baseStyle}
       classesStyles={themeClassesStyles}
       tagsStyles={themeTagsStyles}
       ignoredStyles={['margin']}
