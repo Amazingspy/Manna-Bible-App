@@ -165,8 +165,8 @@ export default function SavedScreen() {
     const listHeader = (
         <View>
             {showHero && (
-                <View className="mx-6 mb-2 mt-5 overflow-hidden rounded-[28px]">
-                    <LinearGradient
+                <View className="mx-6 mb-2 mt-2 overflow-hidden rounded-[28px]">
+                    {/* <LinearGradient
                         colors={isDark ? ["#0f2441", "#1a355b"] : ["#1a355b", "#2f5d9b"]}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
@@ -200,7 +200,7 @@ export default function SavedScreen() {
                                 </TouchableOpacity>
                             </View>
                         </View>
-                    </LinearGradient>
+                    </LinearGradient> */}
                 </View>
             )}
 
@@ -249,7 +249,7 @@ export default function SavedScreen() {
                             value={searchQuery}
                             onChangeText={setSearchQuery}
                             returnKeyType="search"
-                            className="ml-3 flex-1 text-sm font-medium text-slate-900 dark:text-slate-100"
+                            className=" ml-3 flex-1 text-sm font-medium text-slate-900 dark:text-slate-100"
                         />
                         {searchQuery.length > 0 && (
                             <TouchableOpacity onPress={() => setSearchQuery("")} hitSlop={10}>
@@ -263,7 +263,7 @@ export default function SavedScreen() {
                     <ScrollView
                         horizontal
                         showsHorizontalScrollIndicator={false}
-                        className="mt-3"
+                        className="mt-5"
                         contentContainerStyle={{ gap: 8, paddingHorizontal: 24 }}
                     >
                         {[{ id: "All", name: "All" }, ...books].map((b) => {
